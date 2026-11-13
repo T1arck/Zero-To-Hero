@@ -1,0 +1,674 @@
+cat > templates/base.html << 'ENDOFFILE'
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}InvestHub{% endblock %}</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f5f3ff;
+    color: #1e1b4b;
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: 240px;
+    background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+    color: #fff;
+    padding: 24px 16px;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 32px;
+    padding: 0 8px;
+  }
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #818cf8, #6366f1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .nav-menu { list-style: none; }
+  .nav-menu li { margin-bottom: 4px; }
+  .nav-menu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #c7d2fe;
+    text-decoration: none;
+    border-radius: 10px;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+  .nav-menu a:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+  .nav-menu a.active {
+    background: #6366f1;
+    color: #fff;
+  }
+  .nav-icon {
+    font-size: 18px;
+    width: 20px;
+    text-align: center;
+  }
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .main {
+    margin-left: 240px;
+    flex: 1;
+    padding: 24px 32px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .search-box {
+    flex: 1;
+    max-width: 480px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  .search-box input {
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 14px;
+    background: transparent;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+  }
+  .btn-header {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-login {
+    background: #fff;
+    color: #1e1b4b;
+    border: 1px solid #e5e7eb;
+  }
+  .btn-login:hover { background: #f5f3ff; }
+  .btn-register {
+    background: #6366f1;
+    color: #fff;
+  }
+  .btn-register:hover { background: #4f46e5; }
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #818cf8, #6366f1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    position: relative;
+  }
+  .badge-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 2px solid #fff;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #1e1b4b;
+  }
+  .hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a78bfa 100%);
+    border-radius: 20px;
+    padding: 48px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .hero h1 {
+    font-size: 42px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.1;
+  }
+  .hero p {
+    font-size: 16px;
+    opacity: 0.9;
+    max-width: 500px;
+    margin-bottom: 24px;
+  }
+  .hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    color: #4f46e5;
+    padding: 14px 28px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform 0.2s;
+  }
+  .hero-btn:hover { transform: translateY(-2px); }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .section-header h2 {
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .section-header a {
+    color: #6366f1;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .project-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+  }
+  .project-card:hover { transform: translateY(-4px); }
+  .project-img {
+    height: 140px;
+    background: linear-gradient(135deg, #818cf8, #6366f1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    position: relative;
+  }
+  .project-img.eco { background: linear-gradient(135deg, #34d399, #10b981); }
+  .project-img.ai { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
+  .project-img.space { background: linear-gradient(135deg, #1e1b4b, #4338ca); }
+  .project-tag {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .project-body { padding: 20px; }
+  .project-body h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .project-body p {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .progress-bar {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 3px;
+  }
+  .project-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .project-stats strong { color: #1e1b4b; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+  .stat-icon.purple { background: #ede9fe; }
+  .stat-icon.blue { background: #dbeafe; }
+  .stat-icon.green { background: #d1fae5; }
+  .stat-icon.orange { background: #fed7aa; }
+  .stat-label {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e1b4b;
+  }
+  .stat-change {
+    font-size: 12px;
+    color: #10b981;
+    margin-top: 4px;
+  }
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .chart-container {
+    position: relative;
+    height: 280px;
+  }
+  .profile-header {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #818cf8, #6366f1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 40px;
+    font-weight: 600;
+  }
+  .profile-info h1 {
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+  .profile-info p {
+    color: #6b7280;
+    font-size: 14px;
+  }
+  .progress-fill {
+  width: var(--progress, 0%);
+  }
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #374151;
+  }
+  .form-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #fff;
+  }
+  .form-control:focus { border-color: #6366f1; }
+  textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+  }
+  .btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: #6366f1;
+    color: #fff;
+  }
+  .btn-primary:hover { background: #4f46e5; }
+  .btn-secondary {
+    background: #f3f4f6;
+    color: #1e1b4b;
+  }
+  .btn-secondary:hover { background: #e5e7eb; }
+  .btn-danger {
+    background: #ef4444;
+    color: #fff;
+  }
+  .btn-success {
+    background: #10b981;
+    color: #fff;
+  }
+  .flash {
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .flash.success {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .flash.danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .flash.info {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .flash.warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .tag-green {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .tag-blue {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .tag-purple {
+    background: #ede9fe;
+    color: #5b21b6;
+  }
+  .tag-orange {
+    background: #fed7aa;
+    color: #9a3412;
+  }
+  .footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #6b7280;
+  }
+  .footer-links {
+    display: flex;
+    gap: 16px;
+  }
+  .footer-links a {
+    color: #6b7280;
+    text-decoration: none;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .three-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+  .list-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    background: #f9fafb;
+    transition: background 0.2s;
+  }
+  .list-item:hover { background: #f3f4f6; }
+  .list-item-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .list-item-content { flex: 1; }
+  .list-item-content h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .list-item-content p {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .list-item-value {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .balance-card {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .balance-label {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-bottom: 8px;
+  }
+  .balance-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 768px) {
+    .sidebar {
+      width: 60px;
+      padding: 16px 8px;
+    }
+    .sidebar .logo span,
+    .nav-menu a span {
+      display: none;
+    }
+    .main {
+      margin-left: 60px;
+      padding: 16px;
+    }
+    .charts-grid,
+    .two-col,
+    .three-col {
+      grid-template-columns: 1fr;
+    }
+    .hero h1 { font-size: 28px; }
+    .hero::before { display: none; }
+  }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">◆</div>
+    <span>InvestHub</span>
+  </div>
+  <ul class="nav-menu">
+    <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">
+      <span class="nav-icon">🏠</span><span>Главная</span>
+    </a></li>
+    <li><a href="{{ url_for('analytics') }}" class="{% if request.endpoint == 'analytics' %}active{% endif %}">
+      <span class="nav-icon">📊</span><span>Аналитика</span>
+    </a></li>
+    <li><a href="#projects">
+      <span class="nav-icon">🚀</span><span>Проекты</span>
+    </a></li>
+    {% if current_user.is_authenticated %}
+      {% if current_user.role == 'sponsor' %}
+        <li><a href="{{ url_for('sponsor_profile') }}" class="{% if request.endpoint == 'sponsor_profile' %}active{% endif %}">
+          <span class="nav-icon">👤</span><span>Личный кабинет</span>
+        </a></li>
+      {% else %}
+        <li><a href="{{ url_for('team_profile') }}" class="{% if request.endpoint == 'team_profile' %}active{% endif %}">
+          <span class="nav-icon">👥</span><span>Личный кабинет</span>
+        </a></li>
+      {% endif %}
+      <li><a href="#">
+        <span class="nav-icon">💬</span><span>Сообщения</span>
+      </a></li>
+    {% endif %}
+    <li><a href="#">
+      <span class="nav-icon">🎧</span><span>Поддержка</span>
+    </a></li>
+  </ul>
+  <div class="sidebar-footer">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('logout') }}" style="color:#c7d2fe;text-decoration:none;font-size:13px;padding:8px;">
+        <span class="nav-icon">🚪</span> Выйти ({{ current_user.username }})
+      </a>
+    {% else %}
+      <a href="{{ url_for('login') }}" style="color:#c7d2fe;text-decoration:none;font-size:13px;padding:8px;">
+        <span class="nav-icon">🔑</span> Вход / Регистрация
+      </a>
+    {% endif %}
+  </div>
+</aside>
+
+<main class="main">
+  <div class="header">
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" placeholder="Поиск проектов...">
+    </div>
+    <div class="header-actions">
+      {% if not current_user.is_authenticated %}
+        <a class="btn-header btn-login" href="{{ url_for('login') }}">Войти</a>
+        <a class="btn-header btn-register" href="{{ url_for('register') }}">Регистрация</a>
+      {% else %}
+        <button class="icon-btn">🔔<span class="badge-dot"></span></button>
+        <div class="avatar">{{ current_user.username[0]|upper }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+  <footer class="footer">
+    <div><strong>InvestHub</strong></div>
+    <div class="footer-links">
+      <a href="#">Связаться с нами</a>
+      <a href="#">📧</a>
+      <a href="#">✈️</a>
+      <a href="#">Поддержка</a>
+    </div>
+    <div>© 2026 InvestHub. Все права защищены.</div>
+  </footer>
+</main>
+</body>
+</html>
+ENDOFFILE
