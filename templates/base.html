@@ -388,6 +388,57 @@
       border-radius: 10px;
     }
 
+    /* ===== Формы: единый ритм и ровное выравнивание ===== */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f3e2ef;
+      letter-spacing: .2px;
+    }
+
+    .form-group .form-control {
+      margin: 0;
+    }
+
+    .auth-card h1 {
+      font-size: 24px;
+      margin: 0 0 24px;
+    }
+
+    .auth-card form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .auth-card form .btn {
+      margin-top: 6px;
+      padding: 12px 18px;
+      font-size: 15px;
+    }
+
+    .auth-card .form-control:focus {
+      border-color: #e89abd;
+      outline: 2px solid rgba(232, 154, 189, .25);
+    }
+
+    .auth-meta {
+      margin: 18px 0 0;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .auth-meta a { color: #f4bdd4; text-decoration: none; }
+    .auth-meta a:hover { text-decoration: underline; }
+    /* ===== /Формы ===== */
+
     .donate-form .form-control { flex: 1; }
 
     .list-item {
@@ -504,10 +555,12 @@
 
   <main class="main">
     <div class="header">
-      <div class="search-box">
-        <span>🔍</span>
-        <input type="search" placeholder="Поиск проектов..." aria-label="Поиск проектов">
-      </div>
+      {% if request.endpoint not in ['login', 'register'] %}
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="search" placeholder="Поиск проектов..." aria-label="Поиск проектов">
+        </div>
+      {% endif %}
 
       <div class="header-actions">
         {% if not current_user.is_authenticated %}
