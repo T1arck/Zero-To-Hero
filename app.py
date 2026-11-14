@@ -1,29 +1,30 @@
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import wraps
 from urllib.parse import urlparse
 
 from flask import (
-    Flask, abort, flash, redirect, render_template, request, url_for
+    Flask, abort, flash, redirect, render_template, request, url_for,
 )
 from flask_login import (
-    LoginManager, current_user, login_required, login_user, logout_user
+    LoginManager, current_user, login_required, login_user, logout_user,
 )
 from flask_wtf.csrf import CSRFProtect
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
 
 from models import (
     db, User, Sponsor, ResearchTeam, Project, Sponsorship, ProjectUpdate,
+    Milestone, ShareHolding, ShareListing,
 )
 from forms import (
     RegisterForm, LoginForm, ProjectForm, BuySharesForm, ProjectUpdateForm,
+    MilestoneForm, ListSharesForm,
 )
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get(
-    'SECRET_KEY', 'dev-only-change-this'
-)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-change-this')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
@@ -56,6 +57,39 @@ def role_required(role):
         return wrapped
     return decorator
 
+
+# ---------- Вспомогательные функции ----------
+
+def get_or_create_holding(sponsor_id, project_id):
+    holding = ShareHolding.query.filter_by(
+        sponsor_id=sponsor_id, project_id=project_id
+    ).first()
+    if holding:
+        return holding
+    holding = ShareHolding(
+        sponsor_id=sponsor_id, project_id=project_id, shares=0,
+    )
+    db.session.add(holding)
+    return holding
+
+
+def sync_milestone_funds(project):
+    """Освобождает средства эскроу по завершённым вехам (с учётом роста raised)."""
+    for m in project.milestones:
+        if m.status != 'completed':
+            continue
+        target = (m.percentage / 100.0) * project.raised
+        delta = target - (m.released_amount or 0)
+        if delta <= 0:
+            continue
+        available = project.escrow_balance
+        release = min(delta, available)
+        if release > 0:
+            m.released_amount = (m.released_amount or 0) + release
+            project.escrow_released = (project.escrow_released or 0) + release
+
+
+# ---------- Публичные страницы ----------
 
 @app.route('/')
 def index():
@@ -99,18 +133,11 @@ def register():
             db.session.flush()
 
             if user.role == 'sponsor':
-                db.session.add(
-                    Sponsor(user_id=user.id, company='', bio='')
-                )
+                db.session.add(Sponsor(user_id=user.id, company='', bio=''))
             elif user.role == 'team':
-                db.session.add(
-                    ResearchTeam(
-                        user_id=user.id,
-                        name='',
-                        description='',
-                        field='',
-                    )
-                )
+                db.session.add(ResearchTeam(
+                    user_id=user.id, name='', description='', field='',
+                ))
             else:
                 db.session.rollback()
                 abort(400)
@@ -251,6 +278,8 @@ def sponsor_profile():
     return render_template('sponsor_profile.html', sponsor=sponsor)
 
 
+# ---------- Проекты ----------
+
 @app.route('/team/project/new', methods=['GET', 'POST'])
 @role_required('team')
 def create_project():
@@ -275,8 +304,12 @@ def create_project():
         db.session.add(project)
         db.session.commit()
 
-        flash('Проект опубликован. Доли доступны инвесторам.', 'success')
-        return redirect(url_for('account'))
+        flash(
+            'Проект опубликован. Настройте вехи финансирования для '
+            'получения средств из эскроу.',
+            'success',
+        )
+        return redirect(url_for('project_funds', project_id=project.id))
 
     return render_template('create_project.html', form=form)
 
@@ -302,11 +335,7 @@ def create_project_update(project_id):
         flash('Отчёт опубликован!', 'success')
         return redirect(url_for('project_detail', project_id=project.id))
 
-    return render_template(
-        'update.html', 
-        form=form,
-        project=project,
-    )
+    return render_template('update.html', form=form, project=project)
 
 
 @app.route('/projects')
@@ -344,11 +373,19 @@ def project_detail(project_id):
         .all()
     )
 
+    active_listings = (
+        ShareListing.query
+        .filter_by(project_id=project.id, status='active')
+        .order_by(ShareListing.price_per_share.asc())
+        .all()
+    )
+
     return render_template(
         'project_detail.html',
         project=project,
         sponsors=sponsors,
         form=BuySharesForm(),
+        active_listings=active_listings,
     )
 
 
@@ -360,24 +397,18 @@ def buy_shares(project_id):
 
     if not form.validate_on_submit():
         flash('Укажите корректную сумму инвестиций.', 'danger')
-        return redirect(
-            url_for('project_detail', project_id=project.id)
-        )
+        return redirect(url_for('project_detail', project_id=project.id))
 
     if project.status != 'active':
         flash('Проект больше не продаёт доли.', 'warning')
-        return redirect(
-            url_for('project_detail', project_id=project.id)
-        )
+        return redirect(url_for('project_detail', project_id=project.id))
 
     amount = form.amount.data
     shares = int(amount / project.share_price)
 
     if shares < 1:
         flash('Сумма слишком мала для покупки хотя бы одной доли.', 'warning')
-        return redirect(
-            url_for('project_detail', project_id=project.id)
-        )
+        return redirect(url_for('project_detail', project_id=project.id))
 
     if shares > project.shares_left:
         flash(
@@ -385,9 +416,7 @@ def buy_shares(project_id):
             'Укажите меньшую сумму.',
             'warning',
         )
-        return redirect(
-            url_for('project_detail', project_id=project.id)
-        )
+        return redirect(url_for('project_detail', project_id=project.id))
 
     actual_amount = round(shares * project.share_price, 2)
     sponsor = Sponsor.query.filter_by(
@@ -399,23 +428,26 @@ def buy_shares(project_id):
         project.sold_shares = project.total_shares
         project.status = 'funded'
 
-    db.session.add(
-        Sponsorship(
-            project_id=project.id,
-            sponsor_id=sponsor.id,
-            shares=shares,
-            amount=actual_amount,
-        )
-    )
+    db.session.add(Sponsorship(
+        project_id=project.id,
+        sponsor_id=sponsor.id,
+        shares=shares,
+        amount=actual_amount,
+    ))
+
+    holding = get_or_create_holding(sponsor.id, project.id)
+    holding.shares += shares
+
+    sync_milestone_funds(project)
     db.session.commit()
 
     flash(
-        f'Куплено {shares} долей на {actual_amount:.2f} ₽. Спасибо за инвестицию!',
+        f'Куплено {shares} долей на {actual_amount:.2f} ₽. '
+        'Средства зарезервированы в эскроу и будут перечислены команде '
+        'по мере закрытия вех.',
         'success',
     )
-    return redirect(
-        url_for('project_detail', project_id=project.id)
-    )
+    return redirect(url_for('project_detail', project_id=project.id))
 
 
 @app.route('/my-projects')
@@ -452,25 +484,300 @@ def my_projects():
 @app.route('/team/<int:team_id>')
 def team_public(team_id):
     team = ResearchTeam.query.get_or_404(team_id)
-    return render_template(
-        'team_profile.html',
-        team=team,
-        public=True,
-    )
+    return render_template('team_profile.html', team=team, public=True)
 
 
 @app.route('/sponsor/<int:sponsor_id>')
 def sponsor_public(sponsor_id):
     sponsor = Sponsor.query.get_or_404(sponsor_id)
+    return render_template('sponsor_profile.html', sponsor=sponsor, public=True)
+
+
+# =============================================================
+#  MILESTONE-BASED ESCROW
+# =============================================================
+
+@app.route('/project/<int:project_id>/funds')
+@login_required
+def project_funds(project_id):
+    project = Project.query.get_or_404(project_id)
+
+    if current_user.role == 'team' and project.team.user_id != current_user.id:
+        abort(403)
+
+    total_pct = sum(m.percentage for m in project.milestones)
+
     return render_template(
-        'sponsor_profile.html',
-        sponsor=sponsor,
-        public=True,
+        'project_funds.html',
+        project=project,
+        total_pct=total_pct,
+        form=MilestoneForm(),
     )
 
 
-with app.app_context():
+@app.route('/project/<int:project_id>/milestones/new', methods=['POST'])
+@role_required('team')
+def add_milestone(project_id):
+    project = Project.query.get_or_404(project_id)
+
+    if project.team.user_id != current_user.id:
+        abort(403)
+
+    form = MilestoneForm()
+
+    if not form.validate_on_submit():
+        flash('Проверьте данные вехи.', 'danger')
+        return redirect(url_for('project_funds', project_id=project.id))
+
+    current_total = sum(m.percentage for m in project.milestones)
+
+    if current_total + form.percentage.data > 100.0001:
+        flash(
+            f'Сумма процентов всех вех не может превышать 100% '
+            f'(сейчас: {current_total:.1f}%).',
+            'danger',
+        )
+        return redirect(url_for('project_funds', project_id=project.id))
+
+    db.session.add(Milestone(
+        project_id=project.id,
+        title=form.title.data.strip(),
+        description=(form.description.data or '').strip(),
+        percentage=form.percentage.data,
+    ))
+    db.session.commit()
+
+    flash('Веха добавлена.', 'success')
+    return redirect(url_for('project_funds', project_id=project.id))
+
+
+@app.route('/milestone/<int:milestone_id>/complete', methods=['POST'])
+@role_required('team')
+def complete_milestone(milestone_id):
+    m = Milestone.query.get_or_404(milestone_id)
+
+    if m.project.team.user_id != current_user.id:
+        abort(403)
+
+    if m.status == 'completed':
+        flash('Веха уже завершена.', 'info')
+        return redirect(url_for('project_funds', project_id=m.project_id))
+
+    m.status = 'completed'
+    m.completed_at = datetime.utcnow()
+
+    old_released = m.project.escrow_released or 0
+    sync_milestone_funds(m.project)
+    released_now = (m.project.escrow_released or 0) - old_released
+    db.session.commit()
+
+    flash(
+        f'Веха «{m.title}» закрыта. '
+        f'Освобождено {released_now:.2f} ₽ из эскроу.',
+        'success',
+    )
+    return redirect(url_for('project_funds', project_id=m.project_id))
+
+
+# =============================================================
+#  P2P-РЫНОК ДОЛЕЙ
+# =============================================================
+
+@app.route('/market')
+@login_required
+def market():
+    listings = (
+        ShareListing.query
+        .filter_by(status='active')
+        .order_by(ShareListing.created_at.desc())
+        .all()
+    )
+    return render_template('market.html', listings=listings)
+
+
+@app.route('/my-shares')
+@role_required('sponsor')
+def my_shares():
+    sponsor = Sponsor.query.filter_by(
+        user_id=current_user.id
+    ).first_or_404()
+
+    holdings = (
+        ShareHolding.query
+        .filter_by(sponsor_id=sponsor.id)
+        .filter(ShareHolding.shares > 0)
+        .all()
+    )
+
+    active_listings = (
+        ShareListing.query
+        .filter_by(seller_id=sponsor.id, status='active')
+        .order_by(ShareListing.created_at.desc())
+        .all()
+    )
+
+    return render_template(
+        'my_shares.html',
+        sponsor=sponsor,
+        holdings=holdings,
+        listings=active_listings,
+    )
+
+
+@app.route('/market/list/<int:project_id>', methods=['GET', 'POST'])
+@role_required('sponsor')
+def list_shares(project_id):
+    project = Project.query.get_or_404(project_id)
+    sponsor = Sponsor.query.filter_by(
+        user_id=current_user.id
+    ).first_or_404()
+
+    holding = ShareHolding.query.filter_by(
+        sponsor_id=sponsor.id, project_id=project.id,
+    ).first()
+
+    if not holding or holding.shares <= 0:
+        flash('У вас нет свободных долей этого проекта.', 'danger')
+        return redirect(url_for('my_shares'))
+
+    form = ListSharesForm()
+
+    if form.validate_on_submit():
+        shares = form.shares.data
+
+        if shares > holding.shares:
+            flash(
+                f'У вас только {holding.shares} свободных долей.',
+                'danger',
+            )
+            return render_template(
+                'list_shares.html',
+                form=form, project=project, holding=holding,
+            )
+
+        holding.shares -= shares
+        db.session.add(ShareListing(
+            seller_id=sponsor.id,
+            project_id=project.id,
+            shares=shares,
+            price_per_share=form.price_per_share.data,
+            status='active',
+        ))
+        db.session.commit()
+
+        flash(f'Лот на {shares} долей выставлен на рынок.', 'success')
+        return redirect(url_for('my_shares'))
+
+    return render_template(
+        'list_shares.html', form=form, project=project, holding=holding,
+    )
+
+
+@app.route('/market/<int:listing_id>/cancel', methods=['POST'])
+@role_required('sponsor')
+def cancel_listing(listing_id):
+    listing = ShareListing.query.get_or_404(listing_id)
+    sponsor = Sponsor.query.filter_by(
+        user_id=current_user.id
+    ).first_or_404()
+
+    if listing.seller_id != sponsor.id:
+        abort(403)
+
+    if listing.status != 'active':
+        flash('Лот уже неактивен.', 'info')
+        return redirect(url_for('my_shares'))
+
+    listing.status = 'cancelled'
+    holding = get_or_create_holding(sponsor.id, listing.project_id)
+    holding.shares += listing.shares
+    db.session.commit()
+
+    flash('Продажа отменена, доли возвращены в портфель.', 'info')
+    return redirect(url_for('my_shares'))
+
+
+@app.route('/market/<int:listing_id>/buy', methods=['POST'])
+@role_required('sponsor')
+def buy_listing(listing_id):
+    listing = ShareListing.query.get_or_404(listing_id)
+    buyer = Sponsor.query.filter_by(
+        user_id=current_user.id
+    ).first_or_404()
+
+    if listing.status != 'active':
+        flash('Лот уже неактивен.', 'warning')
+        return redirect(url_for('market'))
+
+    if listing.seller_id == buyer.id:
+        flash('Нельзя купить собственный лот.', 'warning')
+        return redirect(url_for('market'))
+
+    listing.status = 'sold'
+    listing.buyer_id = buyer.id
+    listing.sold_at = datetime.utcnow()
+
+    buyer_holding = get_or_create_holding(buyer.id, listing.project_id)
+    buyer_holding.shares += listing.shares
+
+    db.session.commit()
+
+    flash(
+        f'Куплено {listing.shares} долей за {listing.total_price:.2f} ₽ '
+        f'(вторичный рынок).',
+        'success',
+    )
+    return redirect(url_for('my_shares'))
+
+
+# =============================================================
+#  СХЕМА БД: идемпотентная миграция при старте
+# =============================================================
+
+def _ensure_schema():
+    """Догоняет схему БД до текущих моделей. Безопасно вызывать многократно."""
+    inspector = inspect(db.engine)
+    pre_tables = set(inspector.get_table_names())
+
+    # 1) Добавляем недостающие колонки в существующие таблицы
+    if 'project' in pre_tables:
+        cols = {c['name'] for c in inspector.get_columns('project')}
+        if 'escrow_released' not in cols:
+            with db.engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE project "
+                    "ADD COLUMN escrow_released FLOAT NOT NULL DEFAULT 0.0"
+                ))
+            print('[migrate] project.escrow_released — добавлена')
+
+    # 2) Создаём недостающие таблицы (milestone, share_holding, share_listing)
     db.create_all()
+
+    # 3) Бэкфилл ShareHolding из существующих Sponsorship —
+    #    только в момент, когда share_holding появляется впервые.
+    if 'share_holding' not in pre_tables:
+        agg = (
+            db.session.query(
+                Sponsorship.sponsor_id,
+                Sponsorship.project_id,
+                db.func.sum(Sponsorship.shares).label('total'),
+            )
+            .group_by(Sponsorship.sponsor_id, Sponsorship.project_id)
+            .all()
+        )
+        for sponsor_id, project_id, total in agg:
+            db.session.add(ShareHolding(
+                sponsor_id=sponsor_id,
+                project_id=project_id,
+                shares=int(total or 0),
+            ))
+        if agg:
+            db.session.commit()
+            print(f'[migrate] ShareHolding — бэкфилл {len(agg)} записей')
+
+
+with app.app_context():
+    _ensure_schema()
 
 
 if __name__ == '__main__':

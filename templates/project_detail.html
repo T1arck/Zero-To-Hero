@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block title %}{{ project.title }} — InvestLab{% endblock %}
-
 {% block content %}
 {% set goal = project.goal %}
 {% set raised = project.raised %}
@@ -14,7 +13,6 @@
 
   <h1 style="margin:24px 0 12px">{{ project.title }}</h1>
 
-  <!-- Блок ИС (без Вехи) -->
   <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; background: rgba(255,255,255,.05); padding: 20px; border-radius: 12px; border: 1px solid var(--line);">
     <div style="flex: 1; min-width: 200px;">
       <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Тип актива</div>
@@ -35,8 +33,7 @@
   </p>
 
   <p style="margin-top:18px">
-    Команда:
-    <strong>{{ project.team.name or project.team.user.username or 'Команда' }}</strong>
+    Команда: <strong>{{ project.team.name or project.team.user.username or 'Команда' }}</strong>
   </p>
 
   <div class="progress-bar" style="margin-top: 24px;">
@@ -54,83 +51,119 @@
     <span>Осталось: <strong>{{ project.shares_left }} долей</strong></span>
   </div>
 
-  {% if current_user.is_authenticated
-        and current_user.role == 'sponsor'
-        and project.status == 'active'
-        and project.shares_left > 0 %}
-    <!-- Блок сделки с калькулятором -->
+  <!-- ============= ЭСКРОУ-СВОДКА ============= -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-top:24px;">
+    <div style="background:rgba(0,242,254,0.05); border:1px solid var(--line); border-radius:12px; padding:14px;">
+      <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Собрано</div>
+      <div style="font-size:18px; font-weight:800; color:#fff; margin-top:4px;">{{ '%.2f'|format(project.raised) }} ₽</div>
+    </div>
+    <div style="background:rgba(0,242,254,0.05); border:1px solid var(--line); border-radius:12px; padding:14px;">
+      <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">В эскроу</div>
+      <div style="font-size:18px; font-weight:800; color:var(--neon-cyan); margin-top:4px;">{{ '%.2f'|format(project.escrow_balance) }} ₽</div>
+    </div>
+    <div style="background:rgba(179,136,255,0.05); border:1px solid var(--line); border-radius:12px; padding:14px;">
+      <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Выплачено команде</div>
+      <div style="font-size:18px; font-weight:800; color:var(--neon-purple); margin-top:4px;">{{ '%.2f'|format(project.team_received) }} ₽</div>
+    </div>
+  </div>
+
+  <!-- ============= ВЕХИ ============= -->
+  {% if project.milestones %}
+    <section style="margin-top: 32px;">
+      <h2 style="font-size: 20px; margin-bottom: 16px;">Вехи финансирования (эскроу)</h2>
+      {% for m in project.milestones %}
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 220px;">
+            <div style="font-weight: 600; color: #fff;">
+              {{ m.title }} <span style="color: var(--neon-cyan);">— {{ m.percentage }}%</span>
+            </div>
+            {% if m.description %}
+              <p style="color: var(--muted); margin-top: 4px; font-size: 13px;">{{ m.description }}</p>
+            {% endif %}
+          </div>
+          <div style="text-align: right;">
+            {% if m.status == 'completed' %}
+              <span style="color: #4ade80; font-weight: 600; font-size: 13px;">✓ Закрыто</span>
+            {% else %}
+              <span style="color: var(--muted); font-size: 13px;">⏳ Ожидает</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  <!-- ============= СДЕЛКА (первичный рынок) ============= -->
+  {% if current_user.is_authenticated and current_user.role == 'sponsor' and project.status == 'active' and project.shares_left > 0 %}
     <div style="margin-top: 32px; padding: 24px; background: rgba(35, 23, 40, .8); border-radius: 14px; border: 1px solid var(--line);">
-      <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 20px;">Инвестировать в ИС</h3>
-      
+      <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 20px;">Купить доли (первичный рынок)</h3>
       <form class="donate-form" method="post" action="{{ url_for('buy_shares', project_id=project.id) }}">
         {{ form.hidden_tag() }}
-        <input
-          class="form-control"
-          type="number"
-          name="amount"
-          id="invest-amount"
-          min="1"
-          step="0.01"
-          required
-          placeholder="Сумма инвестиций (₽)"
-          aria-label="Сумма инвестиций"
-          oninput="calculateShare()"
-        >
-        <button class="btn btn-primary" type="submit" style="white-space: nowrap;">
-          Купить долю в ИС
-        </button>
+        <input class="form-control" type="number" name="amount" id="invest-amount"
+               min="1" step="0.01" required placeholder="Сумма инвестиций (₽)"
+               oninput="calculateShare()">
+        <button class="btn btn-primary" type="submit" style="white-space: nowrap;">Купить долю в ИС</button>
       </form>
-      
       <div id="calculation-result" style="margin-top: 16px; color: #fff; font-size: 15px; line-height: 1.6; padding: 12px; background: rgba(255,255,255,.05); border-radius: 8px; display: none;"></div>
-      
       <div style="margin-top: 20px; font-size: 13px; color: var(--muted); line-height: 1.5; border-top: 1px solid var(--line); padding-top: 16px;">
-        <strong>⚖️ Юридические условия:</strong> Модель демонстрирует концепцию долевого участия в ИС. Реальные сделки регулируются лицензионными договорами и требуют участия юристов. Все расчёты являются демонстрационными.
+        <strong>🔐 Эскроу:</strong> средства удерживаются платформой и выплачиваются команде траншами после подтверждения вех.
       </div>
     </div>
-    
     <script>
     function calculateShare() {
-        const amountInput = document.getElementById('invest-amount');
-        const amount = parseFloat(amountInput.value);
-        const sharePrice = {{ project.share_price }};
-        const totalShares = {{ project.total_shares }};
-        const ipValuation = totalShares * sharePrice;
-        
-        const resultDiv = document.getElementById('calculation-result');
-        
-        if (!amount || amount <= 0) {
-            resultDiv.style.display = 'none';
-            return;
-        }
-        
-        const shares = Math.floor(amount / sharePrice);
-        const actualCost = shares * sharePrice;
-        const percent = (actualCost / ipValuation) * 100;
-        const forecastIncome = actualCost * 3; 
-        
-        resultDiv.style.display = 'block';
-        resultDiv.innerHTML = `
-            Вы получаете <strong style="color:#f4bdd4; font-size: 18px;">${percent.toFixed(2)}%</strong> доли в ИС (${shares} долей).<br>
-            Итоговая стоимость пакета: <strong>${actualCost.toLocaleString('ru-RU')} ₽</strong>.<br>
-            Прогноз дохода при монетизации (базовый сценарий): <strong>~${forecastIncome.toLocaleString('ru-RU')} ₽</strong>.
-        `;
+      const amount = parseFloat(document.getElementById('invest-amount').value);
+      const sharePrice = {{ project.share_price }};
+      const totalShares = {{ project.total_shares }};
+      const ipValuation = totalShares * sharePrice;
+      const resultDiv = document.getElementById('calculation-result');
+      if (!amount || amount <= 0) { resultDiv.style.display = 'none'; return; }
+      const shares = Math.floor(amount / sharePrice);
+      const actualCost = shares * sharePrice;
+      const percent = (actualCost / ipValuation) * 100;
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `Вы получаете <strong style="color:#f4bdd4;">${percent.toFixed(2)}%</strong> доли (${shares} долей)<br>Итог: <strong>${actualCost.toLocaleString('ru-RU')} ₽</strong>`;
     }
     </script>
   {% elif project.shares_left <= 0 %}
     <p style="margin-top:18px; font-weight: bold; color: #ffb1b1;">Все доли проекта распроданы.</p>
   {% elif not current_user.is_authenticated %}
     <p style="margin-top:18px">
-      <a href="{{ url_for('login') }}">Войдите как инвестор</a>,
-      чтобы купить доли проекта.
+      <a href="{{ url_for('login') }}">Войдите как инвестор</a>, чтобы купить доли.
     </p>
   {% endif %}
 
+  <!-- ============= ВТОРИЧНЫЙ РЫНОК ============= -->
+  {% if active_listings %}
+    <section style="margin-top: 32px;">
+      <h2 style="font-size: 20px; margin-bottom: 16px;">Доли на вторичном рынке</h2>
+      {% for listing in active_listings %}
+        <div style="background: rgba(0,242,254,0.05); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 200px;">
+            <div style="color:#fff; font-weight: 600;">
+              {{ listing.shares }} долей по {{ '%.2f'|format(listing.price_per_share) }} ₽
+            </div>
+            <div style="color: var(--muted); font-size: 13px; margin-top: 4px;">
+              Продавец: {{ listing.seller.company or listing.seller.user.username }} · итого {{ '%.2f'|format(listing.total_price) }} ₽
+            </div>
+          </div>
+          {% if current_user.is_authenticated and current_user.role == 'sponsor' and listing.seller.user_id != current_user.id %}
+            <form method="post" action="{{ url_for('buy_listing', listing_id=listing.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-primary" type="submit" style="padding: 8px 14px; font-size: 13px;">
+                Купить лот
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  <!-- Держатели долей -->
   <section style="margin-top:40px">
     <h2>Держатели долей</h2>
-
     {% for sponsor, total_shares, total_amount in sponsors %}
       {% set sponsor_percent = ((total_shares / project.total_shares * 100)|round(2)) if project.total_shares > 0 else 0 %}
-
       <div class="list-item">
         <div class="list-item-icon">💜</div>
         <div class="list-item-content">
@@ -143,12 +176,11 @@
         </div>
       </div>
     {% else %}
-      <p style="color:var(--muted);margin-top:14px">
-        Пока никто не купил доли.
-      </p>
+      <p style="color:var(--muted);margin-top:14px">Пока никто не купил доли.</p>
     {% endfor %}
   </section>
 
+  <!-- Отчёты -->
   <section style="margin-top:32px">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
       <h2>Отчёты по проекту</h2>
@@ -156,7 +188,6 @@
         <a class="btn btn-primary" href="{{ url_for('create_project_update', project_id=project.id) }}" style="padding:6px 12px; font-size:14px;">+ Добавить отчёт</a>
       {% endif %}
     </div>
-
     {% for update in project.updates %}
       <div class="card" style="margin-bottom:12px; background:rgba(255,255,255,.03);">
         <h4 style="color:var(--neon-cyan); margin-bottom:4px;">{{ update.title }}</h4>

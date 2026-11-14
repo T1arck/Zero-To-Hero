@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Вторичный рынок — InvestLab{% endblock %}
+{% block content %}
+
+<div class="section-header">
+  <div>
+    <h1>Вторичный рынок долей</h1>
+    <p style="color: var(--muted); margin-top: 7px;">
+      Покупайте доли у других инвесторов — без ожидания конца проекта.
+    </p>
+  </div>
+</div>
+
+<div class="projects-grid">
+  {% for listing in listings %}
+    <article class="project-card">
+      <div class="project-img" style="font-size: 48px;">💱
+        <span class="project-tag">{{ listing.project.ip_asset_type[:15] or 'ИС' }}</span>
+      </div>
+      <div class="project-body">
+        <h3>
+          <a href="{{ url_for('project_detail', project_id=listing.project.id) }}"
+             style="color: #fff; text-decoration: none;">
+            {{ listing.project.title }}
+          </a>
+        </h3>
+        <p style="color: var(--muted); font-size: 13px; margin-bottom: 12px;">
+          Продавец: <strong style="color: #fff;">
+            {{ listing.seller.company or listing.seller.user.username }}
+          </strong>
+        </p>
+
+        <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--muted); font-size: 13px;">Долей в лоте:</span>
+            <strong style="color: #fff;">{{ listing.shares }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--muted); font-size: 13px;">Цена за долю:</span>
+            <strong style="color: var(--neon-cyan);">{{ '%.2f'|format(listing.price_per_share) }} ₽</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-top: 6px; border-top: 1px solid var(--line);">
+            <span style="color: var(--muted); font-size: 13px;">Итого:</span>
+            <strong style="color: #fff;">{{ '%.2f'|format(listing.total_price) }} ₽</strong>
+          </div>
+        </div>
+
+        {% if listing.seller.user_id == current_user.id %}
+          <p style="color: var(--muted); font-size: 13px; text-align: center;">Это ваш лот</p>
+        {% else %}
+          <form method="post" action="{{ url_for('buy_listing', listing_id=listing.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-primary" type="submit" style="width: 100%;">
+              Купить лот за {{ '%.2f'|format(listing.total_price) }} ₽
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </article>
+  {% else %}
+    <div class="empty-state" style="grid-column: 1 / -1;">
+      <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.7;">🛒</div>
+      <h3 style="color: #fff;">На рынке пока нет лотов</h3>
+      <p>Инвесторы смогут выставить свои доли на продажу со страницы «Мои доли».</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

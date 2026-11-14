@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Финансирование — {{ project.title }}{% endblock %}
+{% block content %}
+
+<div style="max-width: 900px; margin: 0 auto;">
+  <div style="margin-bottom: 24px;">
+    <a href="{{ url_for('project_detail', project_id=project.id) }}" style="color: var(--neon-cyan);">← К проекту</a>
+  </div>
+
+  <h1 style="margin: 0 0 8px; font-size: 28px; color: #fff;">Эскроу и вехи: {{ project.title }}</h1>
+  <p style="color: var(--muted); margin-bottom: 32px;">
+    Средства инвесторов поступают на эскроу-счёт и перечисляются команде траншами по мере закрытия вех.
+  </p>
+
+  <!-- Сводка -->
+  <div class="projects-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 32px;">
+    <div class="card" style="margin: 0;">
+      <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Собрано всего</div>
+      <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">{{ '%.2f'|format(project.raised) }} ₽</div>
+    </div>
+    <div class="card" style="margin: 0;">
+      <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">В эскроу</div>
+      <div style="font-size: 24px; font-weight: 800; color: var(--neon-cyan); margin-top: 6px;">{{ '%.2f'|format(project.escrow_balance) }} ₽</div>
+    </div>
+    <div class="card" style="margin: 0;">
+      <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Выплачено команде</div>
+      <div style="font-size: 24px; font-weight: 800; color: var(--neon-purple); margin-top: 6px;">{{ '%.2f'|format(project.team_received) }} ₽</div>
+    </div>
+    <div class="card" style="margin: 0;">
+      <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Закрыто вех</div>
+      <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">
+        {{ project.milestones_completed }} / {{ project.milestones|length }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Список вех -->
+  <div class="card">
+    <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+      <span>Вехи финансирования</span>
+      <span style="font-size: 13px; color: var(--muted); font-weight: 400;">Сумма: {{ total_pct }}%</span>
+    </div>
+
+    {% for m in project.milestones %}
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 240px;">
+            <div style="font-weight: 600; color: #fff; font-size: 16px;">
+              {{ m.title }}
+              <span style="color: var(--neon-cyan); font-size: 14px;">— {{ m.percentage }}%</span>
+            </div>
+            {% if m.description %}
+              <p style="color: var(--muted); margin-top: 6px; font-size: 14px; line-height: 1.5;">{{ m.description }}</p>
+            {% endif %}
+            <p style="color: var(--muted); margin-top: 6px; font-size: 13px;">
+              Освобождено: <strong style="color: var(--neon-cyan);">{{ '%.2f'|format(m.released_amount or 0) }} ₽</strong>
+              {% if m.completed_at %} · закрыто {{ m.completed_at.strftime('%d.%m.%Y') }}{% endif %}
+            </p>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+            {% if m.status == 'completed' %}
+              <span style="color: #4ade80; font-weight: 600; font-size: 13px;">✓ Завершено</span>
+            {% else %}
+              <form method="post" action="{{ url_for('complete_milestone', milestone_id=m.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-primary" style="padding: 8px 14px; font-size: 13px;" type="submit">
+                  Закрыть и освободить
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state" style="padding: 32px;">
+        Вехи пока не настроены. Добавьте первую веху ниже — без этого средства не могут быть выплачены.
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Форма добавления вехи -->
+  {% if total_pct < 100 %}
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-title">Добавить веху (осталось {{ (100 - total_pct)|round(2) }}%)</div>
+      <form method="post" action="{{ url_for('add_milestone', project_id=project.id) }}" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+          {{ form.title.label }}{{ form.title(class="form-control", placeholder="Например: Прототип") }}
+        </div>
+        <div class="form-group">
+          {{ form.description.label }}{{ form.description(class="form-control", rows="2", placeholder="Что должно быть сделано?") }}
+        </div>
+        <div class="form-group">
+          {{ form.percentage.label }}{{ form.percentage(class="form-control", min="0.01", max="100", step="0.01", placeholder="Например, 30") }}
+        </div>
+        {{ form.submit(class="btn btn-primary", style="width:100%;") }}
+      </form>
+    </div>
+  {% else %}
+    <div style="margin-top: 16px; padding: 12px; background: rgba(0,242,254,0.08); border-left: 3px solid var(--neon-cyan); border-radius: 8px; color: var(--muted); font-size: 13px;">
+      Сумма процентов всех вех = 100%. Все средства будут распределены по мере их завершения.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

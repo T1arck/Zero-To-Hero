@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Мои доли — InvestLab{% endblock %}
+{% block content %}
+
+<div class="section-header">
+  <div>
+    <h1>Мои доли</h1>
+    <p style="color: var(--muted); margin-top: 7px;">
+      Свободные доли можно выставить на вторичный рынок.
+    </p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('market') }}">Перейти на рынок →</a>
+</div>
+
+<!-- Свободные доли -->
+<h2 style="font-size: 20px; color: #fff; margin: 8px 0 16px;">Портфель</h2>
+<div class="projects-grid">
+  {% for h in holdings %}
+    <article class="project-card">
+      <div class="project-body">
+        <h3 style="font-size: 18px;">
+          <a href="{{ url_for('project_detail', project_id=h.project.id) }}"
+             style="color: #fff; text-decoration: none;">
+            {{ h.project.title }}
+          </a>
+        </h3>
+        <div style="display: flex; justify-content: space-between; margin: 10px 0; color: var(--muted); font-size: 13px;">
+          <span>Свободных долей:</span>
+          <strong style="color: var(--neon-cyan);">{{ h.shares }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 14px; color: var(--muted); font-size: 13px;">
+          <span>Текущая цена:</span>
+          <strong style="color: #fff;">{{ '%.2f'|format(h.project.share_price) }} ₽</strong>
+        </div>
+        <a href="{{ url_for('list_shares', project_id=h.project.id) }}"
+           class="btn btn-primary" style="width: 100%; display: block; text-align: center;">
+          Выставить на продажу
+        </a>
+      </div>
+    </article>
+  {% else %}
+    <div class="empty-state" style="grid-column: 1 / -1;">
+      <div style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;">💼</div>
+      <p>У вас пока нет долей. <a href="{{ url_for('projects_catalog') }}">Перейти в каталог</a></p>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Активные лоты -->
+<h2 style="font-size: 20px; color: #fff; margin: 40px 0 16px;">Мои активные лоты</h2>
+{% if listings %}
+  {% for listing in listings %}
+    <div class="card" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #fff; font-size: 16px;">{{ listing.project.title }}</strong>
+        <p style="color: var(--muted); margin-top: 6px; font-size: 13px;">
+          {{ listing.shares }} долей · {{ '%.2f'|format(listing.price_per_share) }} ₽ / доля ·
+          итого <strong style="color: var(--neon-cyan);">{{ '%.2f'|format(listing.total_price) }} ₽</strong>
+        </p>
+      </div>
+      <form method="post" action="{{ url_for('cancel_listing', listing_id=listing.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-secondary" type="submit" style="padding: 8px 14px; font-size: 13px;">
+          Отменить лот
+        </button>
+      </form>
+    </div>
+  {% endfor %}
+{% else %}
+  <p style="color: var(--muted);">Активных лотов нет.</p>
+{% endif %}
+{% endblock %}
