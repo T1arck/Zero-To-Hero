@@ -38,7 +38,7 @@
         title="Открыть проект «{{ project.title }}»"
       >
         <div class="project-img">
-          🌸
+          🧪
           <span class="project-tag">{{ project.team.field or 'Проект' }}</span>
         </div>
       </a>
@@ -50,7 +50,9 @@
             style="color:inherit;text-decoration:none"
           >{{ project.title }}</a>
         </h3>
-        <p>{{ project.description[:155] }}{% if project.description|length > 155 %}…{% endif %}</p>
+        <p style="word-break: break-word;">
+          {{ project.description[:155] }}{% if project.description|length > 155 %}…{% endif %}
+        </p>
 
         <div class="project-stats">
           <span>Команда: <strong>{{ project.team.name or project.team.user.username or 'Команда' }}</strong></span>

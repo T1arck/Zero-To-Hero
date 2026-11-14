@@ -22,13 +22,17 @@
         title="Открыть проект «{{ project.title }}»"
       >
         <div class="project-img">
-          🌸
-          <span class="project-tag">{{ project.team.field or 'Проект' }}</span>
+          🧪
+          <span class="project-tag">
+            {% if project.status == 'active' %}Идёт сбор
+            {% elif project.status == 'funded' %}Финансирование завершено
+            {% else %}{{ project.status }}{% endif %}
+          </span>
         </div>
 
         <div class="project-body">
           <h3>{{ project.title }}</h3>
-          <p>
+          <p style="word-break: break-word;">
             {{ project.description[:180] }}
             {% if project.description|length > 180 %}…{% endif %}
           </p>

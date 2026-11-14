@@ -20,7 +20,7 @@
     {% for p in projects %}
       {% set progress = p.progress %}
       {% set img_class = ['eco', 'ai', 'space'][loop.index0 % 3] %}
-      {% set img_emoji = ['🌱', '🤖', '🚀'][loop.index0 % 3] %}
+      {% set img_emoji = ['🧪', '🔬', '⚗️'][loop.index0 % 3] %}
     <article class="project-card">
       <a
         href="{{ url_for('project_detail', project_id=p.id) }}"
@@ -33,7 +33,9 @@
         </div>
         <div class="project-body">
           <h3>{{ p.title }}</h3>
-          <p>{{ p.description[:80] }}{% if p.description|length > 80 %}…{% endif %}</p>
+          <p style="word-break: break-word;">
+            {{ p.description[:80] }}{% if p.description|length > 80 %}…{% endif %}
+          </p>
           <div class="progress-bar">
             <div class="progress-fill" style="--progress:{{ progress }}%"></div>
           </div>
