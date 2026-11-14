@@ -1,7 +1,35 @@
-cat > templates/index.html << 'ENDOFFILE'
 {% extends "base.html" %}
 {% block title %}Главная — InvestHub{% endblock %}
 {% block content %}
+
+<style>
+  /* Принудительное выравнивание по левому краю для hero-секции */
+  .hero {
+    text-align: left !important;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start !important;
+    justify-content: center !important;
+  }
+  .hero h1, 
+  .hero p {
+    text-align: left !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+  }
+  
+  /* Выравнивание заголовков секций по левому краю с сохранением ссылки справа */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left !important;
+  }
+  .section-header h2 {
+    text-align: left !important;
+    margin: 0;
+  }
+</style>
 
 <section class="hero">
   <h1>Инвестируй<br>в инновации</h1>
@@ -91,4 +119,3 @@ cat > templates/index.html << 'ENDOFFILE'
 </script>
 
 {% endblock %}
-ENDOFFILE
