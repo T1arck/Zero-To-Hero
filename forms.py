@@ -82,3 +82,15 @@ class BuySharesForm(FlaskForm):
         validators=[DataRequired(), NumberRange(min=1)],
     )
     submit = SubmitField('Купить акции')
+
+
+class ProjectUpdateForm(FlaskForm):
+    title = StringField(
+        'Заголовок отчёта',
+        validators=[DataRequired(), Length(min=3, max=150)],
+    )
+    content = TextAreaField(
+        'Текст отчёта',
+        validators=[DataRequired()],
+    )
+    submit = SubmitField('Опубликовать отчёт')

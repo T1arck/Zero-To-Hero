@@ -13,10 +13,10 @@ from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.exc import IntegrityError
 
 from models import (
-    db, User, Sponsor, ResearchTeam, Project, Sponsorship,
+    db, User, Sponsor, ResearchTeam, Project, Sponsorship, ProjectUpdate,
 )
 from forms import (
-    RegisterForm, LoginForm, ProjectForm, BuySharesForm,
+    RegisterForm, LoginForm, ProjectForm, BuySharesForm, ProjectUpdateForm,
 )
 
 
@@ -278,6 +278,34 @@ def create_project():
     return render_template('create_project.html', form=form)
 
 
+@app.route('/project/<int:project_id>/update/new', methods=['GET', 'POST'])
+@role_required('team')
+def create_project_update(project_id):
+    project = Project.query.get_or_404(project_id)
+
+    if project.team.user_id != current_user.id:
+        abort(403)
+
+    form = ProjectUpdateForm()
+
+    if form.validate_on_submit():
+        update = ProjectUpdate(
+            project_id=project.id,
+            title=form.title.data.strip(),
+            content=form.content.data.strip(),
+        )
+        db.session.add(update)
+        db.session.commit()
+        flash('Отчёт опубликован!', 'success')
+        return redirect(url_for('project_detail', project_id=project.id))
+
+    return render_template(
+        'update.html', # <--- ИСПРАВЛЕНО ЗДЕСЬ
+        form=form,
+        project=project,
+    )
+
+
 @app.route('/projects')
 def projects_page():
     projects = (
@@ -300,7 +328,6 @@ app.add_url_rule(
 def project_detail(project_id):
     project = Project.query.get_or_404(project_id)
 
-    # Складываем все акции одного спонсора в одну строку.
     sponsors = (
         db.session.query(
             Sponsor,

@@ -57,6 +57,12 @@ class Sponsor(db.Model):
         'User',
         backref=db.backref('sponsor', uselist=False),
     )
+    purchases = db.relationship(
+        'Sponsorship',
+        backref='sponsor',
+        lazy=True,
+        foreign_keys='Sponsorship.sponsor_id',
+    )
 
 
 class Project(db.Model):
@@ -81,6 +87,13 @@ class Project(db.Model):
         'Sponsorship',
         backref='project',
         lazy=True,
+    )
+    updates = db.relationship(
+        'ProjectUpdate',
+        backref='project',
+        lazy=True,
+        cascade='all, delete-orphan',
+        order_by='ProjectUpdate.created_at.desc()',
     )
 
     # --- Удобные свойства ---
@@ -123,4 +136,16 @@ class Sponsorship(db.Model):
     amount = db.Column(db.Float, nullable=False)        # итоговая сумма
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    sponsor = db.relationship('Sponsor')
+
+class ProjectUpdate(db.Model):
+    """Отчёт команды по ходу проекта."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(
+        db.Integer,
+        db.ForeignKey('project.id'),
+        nullable=False,
+    )
+    title = db.Column(db.String(150), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

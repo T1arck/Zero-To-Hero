@@ -20,7 +20,7 @@
     <div class="balance-card">
       <div class="balance-label">Всего вложено</div>
       <div class="balance-value">
-        {{ "%.0f"|format(sponsor.user.purchases|sum(attribute='amount') if sponsor.user.purchases is defined else 0) }} ₽
+        {{ "%.0f"|format(sponsor.purchases|sum(attribute='amount')) }} ₽
       </div>
     </div>
   </div>
@@ -47,7 +47,7 @@
 
 <div class="card">
   <div class="card-title">Мои покупки акций</div>
-  {% for purchase in sponsor.user.purchases if sponsor.user.purchases is defined %}
+  {% for purchase in sponsor.purchases %}
     <div class="list-item">
       <div class="list-item-icon" style="background:#fee2e2;">💸</div>
       <div class="list-item-content">
