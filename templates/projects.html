@@ -6,21 +6,20 @@
   <div>
     <h1>Каталог проектов</h1>
     <p style="color:var(--muted);margin-top:7px">
-      Откройте проект, чтобы посмотреть его описание и спонсоров.
+      Купите акции понравившегося проекта и станьте его акционером.
     </p>
   </div>
 </div>
 
 <div class="projects-grid">
   {% for project in projects %}
-    {% set goal = project.goal or 0 %}
-    {% set raised = project.raised or 0 %}
-    {% set progress = [((raised / goal * 100)|round|int), 100]|min if goal > 0 else 0 %}
+    {% set progress = project.progress %}
 
     <article class="project-card">
       <a
         href="{{ url_for('project_detail', project_id=project.id) }}"
-        style="color:inherit;text-decoration:none"
+        style="color:inherit;text-decoration:none;display:block"
+        title="Открыть проект «{{ project.title }}»"
       >
         <div class="project-img">
           🌸
@@ -39,11 +38,16 @@
           </div>
 
           <div class="progress-caption">
-            <span>{{ '%.2f'|format(raised) }} ₽ из {{ '%.2f'|format(goal) }} ₽</span>
+            <span>{{ project.sold_shares }} из {{ project.total_shares }} акций</span>
             <strong>{{ progress }}%</strong>
           </div>
 
-          <p style="margin-top:14px">Открыть проект и список спонсоров →</p>
+          <div class="project-stats" style="margin-top:8px">
+            <span>Цена: <strong>{{ '%.2f'|format(project.share_price) }} ₽ / акция</strong></span>
+            <span>Осталось: <strong>{{ project.shares_left }}</strong></span>
+          </div>
+
+          <p style="margin-top:14px">Открыть проект и список акционеров →</p>
         </div>
       </a>
     </article>

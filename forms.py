@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import (
     FloatField,
+    IntegerField,
     PasswordField,
     SelectField,
     StringField,
@@ -80,19 +81,23 @@ class ProjectForm(FlaskForm):
         'Описание проекта',
         validators=[DataRequired(), Length(min=20)],
     )
-    goal = FloatField(
-        'Цель сбора (₽)',
-        validators=[DataRequired(), NumberRange(min=1)],
+    total_shares = IntegerField(
+        'Всего акций',
+        validators=[DataRequired(), NumberRange(min=1, max=1_000_000)],
+    )
+    share_price = FloatField(
+        'Цена одной акции (₽)',
+        validators=[DataRequired(), NumberRange(min=0.01)],
     )
     submit = SubmitField('Опубликовать проект')
 
 
-class DonationForm(FlaskForm):
-    amount = FloatField(
-        'Сумма пожертвования (₽)',
+class BuySharesForm(FlaskForm):
+    shares = IntegerField(
+        'Сколько акций купить',
         validators=[DataRequired(), NumberRange(min=1)],
     )
-    submit = SubmitField('Поддержать проект')
+    submit = SubmitField('Купить акции')
 
 
 class ResponseForm(FlaskForm):

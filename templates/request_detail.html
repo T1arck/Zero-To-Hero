@@ -1,22 +1,22 @@
-cat > templates/request_detail.html << 'ENDOFFILE'
 {% extends "base.html" %}
+{% block title %}{{ req.title }} — InvestHub{% endblock %}
 {% block content %}
 <div style="max-width:800px;margin:24px auto;">
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px;gap:16px;flex-wrap:wrap;">
       <div>
         <h1 style="font-size:28px;margin-bottom:8px;">{{ req.title }}</h1>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <span class="tag tag-purple">{{ req.sponsor.user.username }}</span>
           <span class="tag {% if req.status == 'open' %}tag-green{% else %}tag-blue{% endif %}">{{ req.status }}</span>
         </div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:13px;color:#6b7280;">Бюджет</div>
-        <div style="font-size:24px;font-weight:700;color:#6366f1;">{{ "%.0f"|format(req.budget) }} ₽</div>
+        <div style="font-size:13px;color:var(--muted);">Бюджет</div>
+        <div style="font-size:24px;font-weight:700;color:#f4bdd4;">{{ "%.0f"|format(req.budget) }} ₽</div>
       </div>
     </div>
-    <p style="color:#374151;line-height:1.7;">{{ req.description }}</p>
+    <p style="color:var(--text);line-height:1.7;white-space:pre-line;">{{ req.description }}</p>
   </div>
 
   {% if current_user.is_authenticated and current_user.role == 'team' and req.status == 'open' %}
@@ -40,23 +40,22 @@ cat > templates/request_detail.html << 'ENDOFFILE'
         </span>
         {% if current_user.is_authenticated and current_user.role == 'sponsor'
              and req.sponsor.user_id == current_user.id and r.status == 'pending' %}
-          <div style="margin-top:8px;display:flex;gap:8px;">
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;">
             <form method="post" action="{{ url_for('handle_response', resp_id=r.id, action='accept') }}" style="display:inline;">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button class="btn btn-success" style="padding:6px 12px;font-size:12px;">Принять</button>
+              <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;">Принять</button>
             </form>
             <form method="post" action="{{ url_for('handle_response', resp_id=r.id, action='reject') }}" style="display:inline;">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button class="btn btn-danger" style="padding:6px 12px;font-size:12px;">Отклонить</button>
+              <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Отклонить</button>
             </form>
           </div>
         {% endif %}
       </div>
     </div>
     {% else %}
-      <p style="color:#6b7280;text-align:center;padding:24px;">Откликов пока нет</p>
+      <p style="color:var(--muted);text-align:center;padding:24px;">Откликов пока нет</p>
     {% endfor %}
   </div>
 </div>
 {% endblock %}
-ENDOFFILE

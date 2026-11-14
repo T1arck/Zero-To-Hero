@@ -6,7 +6,7 @@
   <div>
     <h1>Кабинет инвестора</h1>
     <p style="color:var(--muted);margin-top:7px">
-      Выбирайте проекты и поддерживайте команды. Прогресс сбора обновляется после каждого взноса.
+      Покупайте акции проектов — прогресс обновляется после каждой покупки.
     </p>
   </div>
   <a class="btn btn-primary" href="{{ url_for('projects_catalog') }}">Весь каталог</a>
@@ -22,25 +22,34 @@
 </div>
 
 <div class="section-header">
-  <h2>Проекты, которым можно помочь</h2>
+  <h2>Проекты с доступными акциями</h2>
   <span style="color:var(--muted)">{{ projects|length }} проектов</span>
 </div>
 
 <div class="projects-grid">
   {% for project in projects %}
-    {% set goal = project.goal or 0 %}
-    {% set raised = project.raised or 0 %}
-    {% set progress = [((raised / goal * 100)|round|int), 100]|min if goal > 0 else 0 %}
-    {% set remaining = [goal - raised, 0]|max %}
+    {% set progress = project.progress %}
+    {% set shares_left = project.shares_left %}
 
     <article class="project-card">
-      <div class="project-img">
-        🌸
-        <span class="project-tag">{{ project.team.field or 'Проект' }}</span>
-      </div>
+      <a
+        href="{{ url_for('project_detail', project_id=project.id) }}"
+        style="color:inherit;text-decoration:none;display:block"
+        title="Открыть проект «{{ project.title }}»"
+      >
+        <div class="project-img">
+          🌸
+          <span class="project-tag">{{ project.team.field or 'Проект' }}</span>
+        </div>
+      </a>
 
       <div class="project-body">
-        <h3>{{ project.title }}</h3>
+        <h3>
+          <a
+            href="{{ url_for('project_detail', project_id=project.id) }}"
+            style="color:inherit;text-decoration:none"
+          >{{ project.title }}</a>
+        </h3>
         <p>{{ project.description[:155] }}{% if project.description|length > 155 %}…{% endif %}</p>
 
         <div class="project-stats">
@@ -52,32 +61,37 @@
         </div>
 
         <div class="progress-caption">
-          <span>{{ '%.2f'|format(raised) }} ₽ из {{ '%.2f'|format(goal) }} ₽</span>
-          <strong>{{ progress }}% закрыто</strong>
+          <span>{{ project.sold_shares }} из {{ project.total_shares }} акций</span>
+          <strong>{{ progress }}%</strong>
+        </div>
+
+        <div class="project-stats" style="margin-top:8px">
+          <span>Цена: <strong>{{ '%.2f'|format(project.share_price) }} ₽ / акция</strong></span>
+          <span>Осталось: <strong>{{ shares_left }}</strong></span>
         </div>
 
         <p style="color:var(--muted);font-size:12px;margin-top:6px">
-          Осталось {{ '%.2f'|format(remaining) }} ₽
+          Собрано {{ '%.2f'|format(project.raised) }} ₽ из {{ '%.2f'|format(project.goal) }} ₽
         </p>
 
-        {% if remaining > 0 %}
-          <form class="donate-form" method="post" action="{{ url_for('donate', project_id=project.id) }}">
+        {% if shares_left > 0 %}
+          <form class="donate-form" method="post" action="{{ url_for('buy_shares', project_id=project.id) }}">
             {{ form.hidden_tag() }}
             <input
               class="form-control"
               type="number"
-              name="amount"
+              name="shares"
               min="1"
-              max="{{ remaining }}"
-              step="0.01"
+              max="{{ shares_left }}"
+              step="1"
               required
-              placeholder="Сумма, ₽"
-              aria-label="Сумма пожертвования"
+              placeholder="Сколько акций купить"
+              aria-label="Количество акций"
             >
-            <button class="btn btn-primary" type="submit">Поддержать</button>
+            <button class="btn btn-primary" type="submit">Купить</button>
           </form>
         {% else %}
-          <p style="margin-top:12px">Цель сбора достигнута.</p>
+          <p style="margin-top:12px">Все акции распроданы.</p>
         {% endif %}
       </div>
     </article>
@@ -89,20 +103,26 @@
 </div>
 
 <div class="section-header" style="margin-top:32px">
-  <h2>Мои пожертвования</h2>
+  <h2>Мои покупки акций</h2>
 </div>
 
 <div class="card">
-  {% for donation in donations %}
+  {% for purchase in donations %}
     <div class="list-item">
       <div class="list-item-content">
-        <strong>{{ donation.project.title }}</strong>
-        <p>{{ donation.created_at.strftime('%d.%m.%Y') if donation.created_at else '' }}</p>
+        <strong>
+          <a
+            href="{{ url_for('project_detail', project_id=purchase.project.id) }}"
+            style="color:inherit;text-decoration:none"
+          >{{ purchase.project.title }}</a>
+        </strong>
+        <p>{{ purchase.created_at.strftime('%d.%m.%Y') if purchase.created_at else '' }}
+           · {{ purchase.shares }} акций</p>
       </div>
-      <strong>{{ '%.2f'|format(donation.amount) }} ₽</strong>
+      <strong>{{ '%.2f'|format(purchase.amount) }} ₽</strong>
     </div>
   {% else %}
-    <p class="empty-state">Пожертвований пока нет.</p>
+    <p class="empty-state">Покупок пока нет.</p>
   {% endfor %}
 </div>
 {% endblock %}

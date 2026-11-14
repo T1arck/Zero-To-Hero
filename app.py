@@ -17,7 +17,7 @@ from models import (
 )
 from forms import (
     RegisterForm, LoginForm, SponsorshipRequestForm,
-    ResponseForm, ProjectForm, DonationForm,
+    ResponseForm, ProjectForm, BuySharesForm,
 )
 
 
@@ -208,7 +208,7 @@ def account():
             .all()
         )
 
-        donations = (
+        purchases = (
             Sponsorship.query
             .filter_by(sponsor_id=sponsor.id)
             .order_by(Sponsorship.created_at.desc())
@@ -219,8 +219,8 @@ def account():
             'sponsor_dashboard.html',
             sponsor=sponsor,
             projects=projects,
-            donations=donations,
-            form=DonationForm(),
+            donations=purchases,
+            form=BuySharesForm(),
         )
 
     abort(403)
@@ -274,14 +274,15 @@ def create_project():
             team_id=team.id,
             title=form.title.data.strip(),
             description=form.description.data.strip(),
-            goal=form.goal.data,
-            raised=0,
+            total_shares=form.total_shares.data,
+            share_price=form.share_price.data,
+            sold_shares=0,
             status='active',
         )
         db.session.add(project)
         db.session.commit()
 
-        flash('Проект опубликован и сохранён.', 'success')
+        flash('Проект опубликован. Акции доступны инвесторам.', 'success')
         return redirect(url_for('account'))
 
     return render_template('create_project.html', form=form)
@@ -298,7 +299,6 @@ def projects_page():
     return render_template('projects.html', projects=projects)
 
 
-# Старое имя endpoint тоже поддерживается шаблонами.
 app.add_url_rule(
     '/projects',
     endpoint='projects_catalog',
@@ -310,14 +310,11 @@ app.add_url_rule(
 def project_detail(project_id):
     project = Project.query.get_or_404(project_id)
 
-    goal = project.goal or 0
-    raised = project.raised or 0
-    progress = min(round(raised / goal * 100), 100) if goal > 0 else 0
-
-    # Складываем все взносы одного спонсора в одну строку.
+    # Складываем все акции одного спонсора в одну строку.
     sponsors = (
         db.session.query(
             Sponsor,
+            db.func.sum(Sponsorship.shares).label('total_shares'),
             db.func.sum(Sponsorship.amount).label('total_amount'),
         )
         .join(Sponsorship, Sponsorship.sponsor_id == Sponsor.id)
@@ -330,66 +327,65 @@ def project_detail(project_id):
     return render_template(
         'project_detail.html',
         project=project,
-        progress=progress,
         sponsors=sponsors,
-        form=DonationForm(),
+        form=BuySharesForm(),
     )
 
 
-@app.route('/projects/<int:project_id>/donate', methods=['POST'])
+@app.route('/projects/<int:project_id>/buy', methods=['POST'])
 @role_required('sponsor')
-def donate(project_id):
+def buy_shares(project_id):
     project = Project.query.get_or_404(project_id)
-    form = DonationForm()
+    form = BuySharesForm()
 
     if not form.validate_on_submit():
-        flash('Укажите корректную сумму пожертвования.', 'danger')
+        flash('Укажите корректное количество акций.', 'danger')
         return redirect(
             url_for('project_detail', project_id=project.id)
         )
 
     if project.status != 'active':
-        flash('Проект больше не принимает пожертвования.', 'warning')
+        flash('Проект больше не продаёт акции.', 'warning')
         return redirect(
             url_for('project_detail', project_id=project.id)
         )
 
-    amount = round(float(form.amount.data), 2)
-    remaining = max(
-        0,
-        round(project.goal - (project.raised or 0), 2),
-    )
+    shares = int(form.shares.data)
 
-    if amount > remaining:
+    if shares > project.shares_left:
         flash(
-            f'До цели осталось {remaining:.2f} ₽. '
-            'Укажите сумму не больше остатка.',
+            f'Осталось всего {project.shares_left} акций. '
+            'Укажите меньшее количество.',
             'warning',
         )
         return redirect(
             url_for('project_detail', project_id=project.id)
         )
 
+    amount = round(shares * project.share_price, 2)
     sponsor = Sponsor.query.filter_by(
         user_id=current_user.id
     ).first_or_404()
 
-    project.raised = round((project.raised or 0) + amount, 2)
-
-    if project.raised >= project.goal:
-        project.raised = project.goal
+    project.sold_shares += shares
+    if project.sold_shares >= project.total_shares:
+        project.sold_shares = project.total_shares
         project.status = 'funded'
 
     db.session.add(
         Sponsorship(
             project_id=project.id,
             sponsor_id=sponsor.id,
+            shares=shares,
             amount=amount,
         )
     )
     db.session.commit()
 
-    flash('Пожертвование записано. Спасибо за поддержку!', 'success')
+    flash(
+        f'Куплено {shares} акций на {amount:.2f} ₽. Спасибо за инвестицию!',
+        'success',
+    )
     return redirect(
         url_for('project_detail', project_id=project.id)
     )
@@ -455,12 +451,14 @@ def handle_response(resp_id, action):
         response.status = 'accepted'
         sponsorship_request.status = 'taken'
 
+        # При принятии отклика создаём проект с 1 акцией на весь бюджет.
         project = Project(
             team_id=response.team_id,
             title=sponsorship_request.title,
             description=sponsorship_request.description,
-            goal=sponsorship_request.budget,
-            raised=sponsorship_request.budget,
+            total_shares=1,
+            share_price=sponsorship_request.budget,
+            sold_shares=1,
             status='funded',
         )
         db.session.add(project)
@@ -470,6 +468,7 @@ def handle_response(resp_id, action):
             Sponsorship(
                 project_id=project.id,
                 sponsor_id=sponsorship_request.sponsor_id,
+                shares=1,
                 amount=sponsorship_request.budget,
             )
         )

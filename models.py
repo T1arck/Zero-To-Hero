@@ -74,8 +74,12 @@ class Project(db.Model):
     )
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    goal = db.Column(db.Float, nullable=False)
-    raised = db.Column(db.Float, default=0.0)
+
+    # --- Акции ---
+    total_shares = db.Column(db.Integer, nullable=False, default=100)
+    share_price = db.Column(db.Float, nullable=False, default=1.0)
+    sold_shares = db.Column(db.Integer, nullable=False, default=0)
+
     status = db.Column(db.String(20), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -84,6 +88,27 @@ class Project(db.Model):
         backref='project',
         lazy=True,
     )
+
+    # --- Удобные свойства ---
+    @property
+    def goal(self):
+        """Цель сбора = все акции × цена."""
+        return round(self.total_shares * self.share_price, 2)
+
+    @property
+    def raised(self):
+        """Собрано = проданные акции × цена."""
+        return round(self.sold_shares * self.share_price, 2)
+
+    @property
+    def shares_left(self):
+        return max(self.total_shares - self.sold_shares, 0)
+
+    @property
+    def progress(self):
+        if self.total_shares <= 0:
+            return 0
+        return min(round(self.sold_shares / self.total_shares * 100), 100)
 
 
 class SponsorshipRequest(db.Model):
@@ -124,7 +149,7 @@ class Response(db.Model):
 
 
 class Sponsorship(db.Model):
-    """Пожертвование спонсора проекту."""
+    """Покупка акций проекта спонсором."""
 
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(
@@ -137,7 +162,8 @@ class Sponsorship(db.Model):
         db.ForeignKey('sponsor.id'),
         nullable=False,
     )
-    amount = db.Column(db.Float, nullable=False)
+    shares = db.Column(db.Integer, nullable=False)      # сколько акций куплено
+    amount = db.Column(db.Float, nullable=False)        # итоговая сумма
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     sponsor = db.relationship('Sponsor')
