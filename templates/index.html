@@ -6,16 +6,15 @@
   <h1>Инвестируй<br>в инновации</h1>
   <p>Платформа, где исследователи находят поддержку, а спонсоры — перспективные проекты</p>
   {% if not current_user.is_authenticated %}
-    <a class="hero-btn" href="{{ url_for('register') }}">Перейти к проектам →</a>
+    <a class="hero-btn" href="{{ url_for('register') }}">Все проекты</a>
   {% else %}
-    <a class="hero-btn" href="#projects">Смотреть проекты →</a>
+    <a class="hero-btn" href="{{ url_for('projects_catalog') }}">Все проекты</a>
   {% endif %}
 </section>
 
 <section id="projects">
   <div class="section-header">
     <h2>Популярные проекты</h2>
-    <a href="{{ url_for('projects_catalog') }}">Все проекты →</a>
   </div>
   <div class="projects-grid">
     {% for p in projects %}
