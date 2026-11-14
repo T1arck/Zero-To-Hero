@@ -9,15 +9,14 @@ from flask import (
 from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user
 )
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.exc import IntegrityError
 
 from models import (
-    db, User, Sponsor, ResearchTeam, Project,
-    SponsorshipRequest, Response, Sponsorship,
+    db, User, Sponsor, ResearchTeam, Project, Sponsorship,
 )
 from forms import (
-    RegisterForm, LoginForm, SponsorshipRequestForm,
-    ResponseForm, ProjectForm, BuySharesForm,
+    RegisterForm, LoginForm, ProjectForm, BuySharesForm,
 )
 
 
@@ -32,6 +31,7 @@ app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 
 db.init_app(app)
+csrf = CSRFProtect(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -65,17 +65,7 @@ def index():
         .order_by(Project.created_at.desc())
         .all()
     )
-    requests = (
-        SponsorshipRequest.query
-        .filter_by(status='open')
-        .order_by(SponsorshipRequest.created_at.desc())
-        .all()
-    )
-    return render_template(
-        'index.html',
-        projects=projects,
-        requests=requests,
-    )
+    return render_template('index.html', projects=projects)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -288,7 +278,7 @@ def create_project():
     return render_template('create_project.html', form=form)
 
 
-@app.route('/projects', endpoint='projects')
+@app.route('/projects')
 def projects_page():
     projects = (
         Project.query
@@ -391,139 +381,6 @@ def buy_shares(project_id):
     )
 
 
-@app.route('/sponsor/request/new', methods=['GET', 'POST'])
-@role_required('sponsor')
-def create_request():
-    form = SponsorshipRequestForm()
-
-    if form.validate_on_submit():
-        sponsor = Sponsor.query.filter_by(
-            user_id=current_user.id
-        ).first_or_404()
-
-        new_request = SponsorshipRequest(
-            sponsor_id=sponsor.id,
-            title=form.title.data.strip(),
-            description=form.description.data.strip(),
-            budget=form.budget.data,
-        )
-        db.session.add(new_request)
-        db.session.commit()
-
-        flash('Заявка опубликована', 'success')
-        return redirect(url_for('account'))
-
-    return render_template('create_request.html', form=form)
-
-
-@app.route('/sponsor/request/<int:req_id>')
-def request_detail(req_id):
-    sponsorship_request = SponsorshipRequest.query.get_or_404(req_id)
-    return render_template(
-        'request_detail.html',
-        req=sponsorship_request,
-    )
-
-
-@app.route(
-    '/sponsor/response/<int:resp_id>/<action>',
-    methods=['POST'],
-)
-@role_required('sponsor')
-def handle_response(resp_id, action):
-    if action not in ('accept', 'reject'):
-        abort(400)
-
-    response = Response.query.get_or_404(resp_id)
-    sponsorship_request = response.request
-
-    if sponsorship_request.sponsor.user_id != current_user.id:
-        abort(403)
-
-    if action == 'accept':
-        if (
-            sponsorship_request.status != 'open'
-            or response.status != 'pending'
-        ):
-            flash('Заявка или отклик уже обработаны', 'warning')
-            return redirect(url_for('account'))
-
-        response.status = 'accepted'
-        sponsorship_request.status = 'taken'
-
-        # При принятии отклика создаём проект с 1 акцией на весь бюджет.
-        project = Project(
-            team_id=response.team_id,
-            title=sponsorship_request.title,
-            description=sponsorship_request.description,
-            total_shares=1,
-            share_price=sponsorship_request.budget,
-            sold_shares=1,
-            status='funded',
-        )
-        db.session.add(project)
-        db.session.flush()
-
-        db.session.add(
-            Sponsorship(
-                project_id=project.id,
-                sponsor_id=sponsorship_request.sponsor_id,
-                shares=1,
-                amount=sponsorship_request.budget,
-            )
-        )
-        flash('Отклик принят. Проект создан и профинансирован.', 'success')
-    else:
-        response.status = 'rejected'
-        flash('Отклик отклонён', 'info')
-
-    db.session.commit()
-    return redirect(url_for('account'))
-
-
-@app.route('/team/respond/<int:req_id>', methods=['GET', 'POST'])
-@role_required('team')
-def respond_to_request(req_id):
-    sponsorship_request = SponsorshipRequest.query.get_or_404(req_id)
-
-    if sponsorship_request.status != 'open':
-        flash('Заявка уже закрыта', 'warning')
-        return redirect(url_for('index'))
-
-    team = ResearchTeam.query.filter_by(
-        user_id=current_user.id
-    ).first_or_404()
-
-    existing = Response.query.filter_by(
-        request_id=sponsorship_request.id,
-        team_id=team.id,
-    ).first()
-
-    if existing:
-        flash('Вы уже откликнулись на эту заявку', 'info')
-        return redirect(url_for('account'))
-
-    form = ResponseForm()
-
-    if form.validate_on_submit():
-        db.session.add(
-            Response(
-                request_id=sponsorship_request.id,
-                team_id=team.id,
-                pitch=form.pitch.data,
-            )
-        )
-        db.session.commit()
-        flash('Отклик отправлен', 'success')
-        return redirect(url_for('account'))
-
-    return render_template(
-        'respond.html',
-        req=sponsorship_request,
-        form=form,
-    )
-
-
 @app.route('/my-projects')
 @login_required
 def my_projects():
@@ -531,7 +388,12 @@ def my_projects():
         team = ResearchTeam.query.filter_by(
             user_id=current_user.id
         ).first_or_404()
-        projects = Project.query.filter_by(team_id=team.id).all()
+        projects = (
+            Project.query
+            .filter_by(team_id=team.id)
+            .order_by(Project.created_at.desc())
+            .all()
+        )
     elif current_user.role == 'sponsor':
         sponsor = Sponsor.query.filter_by(
             user_id=current_user.id
@@ -540,6 +402,7 @@ def my_projects():
             Project.query
             .join(Sponsorship)
             .filter(Sponsorship.sponsor_id == sponsor.id)
+            .distinct()
             .order_by(Project.created_at.desc())
             .all()
         )

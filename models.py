@@ -40,7 +40,6 @@ class ResearchTeam(db.Model):
         backref=db.backref('team', uselist=False),
     )
     projects = db.relationship('Project', backref='team', lazy=True)
-    responses = db.relationship('Response', backref='team', lazy=True)
 
 
 class Sponsor(db.Model):
@@ -57,11 +56,6 @@ class Sponsor(db.Model):
     user = db.relationship(
         'User',
         backref=db.backref('sponsor', uselist=False),
-    )
-    requests = db.relationship(
-        'SponsorshipRequest',
-        backref='sponsor',
-        lazy=True,
     )
 
 
@@ -109,43 +103,6 @@ class Project(db.Model):
         if self.total_shares <= 0:
             return 0
         return min(round(self.sold_shares / self.total_shares * 100), 100)
-
-
-class SponsorshipRequest(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sponsor_id = db.Column(
-        db.Integer,
-        db.ForeignKey('sponsor.id'),
-        nullable=False,
-    )
-    title = db.Column(db.String(150), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    budget = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='open')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    responses = db.relationship(
-        'Response',
-        backref='request',
-        lazy=True,
-    )
-
-
-class Response(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    request_id = db.Column(
-        db.Integer,
-        db.ForeignKey('sponsorship_request.id'),
-        nullable=False,
-    )
-    team_id = db.Column(
-        db.Integer,
-        db.ForeignKey('research_team.id'),
-        nullable=False,
-    )
-    pitch = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(20), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Sponsorship(db.Model):

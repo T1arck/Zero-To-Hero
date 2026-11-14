@@ -4,7 +4,7 @@
 
 <div class="profile-header">
   <div class="profile-avatar" style="background:linear-gradient(135deg,#10b981,#059669);">
-    {{ (team.name or team.user.username)[0]|upper }}
+    {{ (team.name or team.user.username or '?')[0]|upper }}
   </div>
   <div class="profile-info">
     <h1>{{ team.name or 'Научная команда' }}</h1>
@@ -51,10 +51,7 @@
   
   <div>
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div class="card-title" style="margin:0;">Мои объявления</div>
-        <a href="#" style="color:#6366f1;font-size:13px;text-decoration:none;">Все →</a>
-      </div>
+      <div class="card-title">Мои объявления</div>
       {% for p in team.projects %}
         {% set progress = p.progress %}
       <div class="list-item">
@@ -78,6 +75,7 @@
   </div>
 </div>
 
+{% if team.projects %}
 <div class="card">
   <div class="card-title">Проекты команды</div>
   <div class="projects-grid">
@@ -107,31 +105,8 @@
         </div>
       </a>
     </article>
-    {% else %}
-    <div class="card" style="grid-column:1/-1;text-align:center;padding:48px;">
-      <p style="color:#6b7280;">У команды пока нет проектов. Откликнитесь на заявку спонсора!</p>
-    </div>
     {% endfor %}
   </div>
-</div>
-
-{% if not public|default(false) %}
-<div class="card">
-  <div class="card-title">Мои отклики</div>
-  {% for r in team.responses %}
-  <div class="list-item">
-    <div class="list-item-icon" style="background:#ede9fe;">📩</div>
-    <div class="list-item-content">
-      <h4><a href="{{ url_for('request_detail', req_id=r.request_id) }}" style="color:#f4bdd4;text-decoration:none;">{{ r.request.title }}</a></h4>
-      <p>{{ r.pitch[:100] }}{% if r.pitch|length > 100 %}…{% endif %}</p>
-    </div>
-    <span class="tag {% if r.status == 'accepted' %}tag-green{% elif r.status == 'rejected' %}tag-orange{% else %}tag-blue{% endif %}">
-      {{ r.status }}
-    </span>
-  </div>
-  {% else %}
-    <p style="color:var(--muted);text-align:center;padding:24px;">Вы пока ни на что не откликались</p>
-  {% endfor %}
 </div>
 {% endif %}
 

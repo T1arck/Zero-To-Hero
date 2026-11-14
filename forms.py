@@ -56,22 +56,6 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Войти')
 
 
-class SponsorshipRequestForm(FlaskForm):
-    title = StringField(
-        'Заголовок заявки',
-        validators=[DataRequired(), Length(min=3, max=150)],
-    )
-    description = TextAreaField(
-        'Описание задачи/тематики',
-        validators=[DataRequired()],
-    )
-    budget = FloatField(
-        'Бюджет (руб.)',
-        validators=[DataRequired(), NumberRange(min=1)],
-    )
-    submit = SubmitField('Опубликовать заявку')
-
-
 class ProjectForm(FlaskForm):
     title = StringField(
         'Название проекта',
@@ -98,11 +82,3 @@ class BuySharesForm(FlaskForm):
         validators=[DataRequired(), NumberRange(min=1)],
     )
     submit = SubmitField('Купить акции')
-
-
-class ResponseForm(FlaskForm):
-    pitch = TextAreaField(
-        'Ваше предложение',
-        validators=[DataRequired()],
-    )
-    submit = SubmitField('Откликнуться')

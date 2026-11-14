@@ -3,9 +3,6 @@
 {% block content %}
 <section class="section-header">
   <h1>Мои проекты</h1>
-  {% if current_user.role == 'team' %}
-    <a class="btn btn-primary" href="{{ url_for('index') }}">Найти заявки</a>
-  {% endif %}
 </section>
 <div class="projects-grid">
   {% for project in projects %}
@@ -36,11 +33,6 @@
   {% else %}
     <div class="card" style="grid-column:1/-1;text-align:center;padding:40px">
       <p style="color:#6b7280">Пока проектов нет.</p>
-      {% if current_user.role == 'team' %}
-        <p style="margin-top:12px">
-          <a class="btn btn-primary" href="{{ url_for('index') }}">Посмотреть открытые заявки</a>
-        </p>
-      {% endif %}
     </div>
   {% endfor %}
 </div>

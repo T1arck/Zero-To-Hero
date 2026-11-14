@@ -439,6 +439,50 @@
     .auth-meta a:hover { text-decoration: underline; }
     /* ===== /Формы ===== */
 
+    /* ===== Hero (главная) ===== */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 0 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 16px;
+      font-size: clamp(32px, 5vw, 52px);
+      line-height: 1.1;
+      color: #fff4fb;
+    }
+
+    .hero p {
+      max-width: 620px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .hero-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 22px;
+      padding: 13px 22px;
+      color: #241425;
+      font-weight: 650;
+      text-decoration: none;
+      background: linear-gradient(120deg, #e89abd, #b38acb);
+      border-radius: 12px;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .hero-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(232, 154, 189, .35);
+    }
+    /* ===== /Hero ===== */
+
     .donate-form .form-control { flex: 1; }
 
     .list-item {
@@ -569,7 +613,7 @@
         {% else %}
           <details class="account-menu">
             <summary class="avatar" aria-label="Открыть меню аккаунта">
-              {{ current_user.username[0]|upper }}
+              {{ (current_user.username or '?')[0]|upper }}
             </summary>
             <div class="account-dropdown">
               <div class="account-name">
@@ -609,6 +653,7 @@
     </footer>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
     (() => {
       const video = document.getElementById('wallpaper-video');

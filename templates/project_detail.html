@@ -20,7 +20,7 @@
 
   <p style="margin-top:18px">
     Команда:
-    <strong>{{ project.team.name or project.team.user.username }}</strong>
+    <strong>{{ project.team.name or project.team.user.username or 'Команда' }}</strong>
   </p>
 
   <div class="progress-bar">

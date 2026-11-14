@@ -2,32 +2,6 @@
 {% block title %}Главная — InvestHub{% endblock %}
 {% block content %}
 
-<style>
-  .hero {
-    text-align: left !important;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start !important;
-    justify-content: center !important;
-  }
-  .hero h1, 
-  .hero p {
-    text-align: left !important;
-    margin-left: 0 !important;
-    margin-right: auto !important;
-  }
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    text-align: left !important;
-  }
-  .section-header h2 {
-    text-align: left !important;
-    margin: 0;
-  }
-</style>
-
 <section class="hero">
   <h1>Инвестируй<br>в инновации</h1>
   <p>Платформа, где исследователи находят поддержку, а спонсоры — перспективные проекты</p>
@@ -78,38 +52,6 @@
     {% else %}
     <div class="card" style="grid-column:1/-1;text-align:center;padding:48px;">
       <p style="color:#6b7280;">Пока нет активных проектов. Станьте первым!</p>
-    </div>
-    {% endfor %}
-  </div>
-</section>
-
-<section style="margin-top:32px;">
-  <div class="section-header">
-    <h2>Открытые заявки спонсоров</h2>
-    <a href="#">Все заявки →</a>
-  </div>
-  <div class="projects-grid">
-    {% for r in requests %}
-    <div class="project-card">
-      <div class="project-img" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">
-        💼
-        <span class="project-tag">Заявка</span>
-      </div>
-      <div class="project-body">
-        <h3>{{ r.title }}</h3>
-        <p>{{ r.description[:80] }}{% if r.description|length > 80 %}…{% endif %}</p>
-        <div class="project-stats">
-          <span><strong>{{ "%.0f"|format(r.budget or 0) }} ₽</strong> бюджет</span>
-          <span class="tag tag-green">Открыта</span>
-        </div>
-        <a href="{{ url_for('request_detail', req_id=r.id) }}" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px;">
-          Подробнее
-        </a>
-      </div>
-    </div>
-    {% else %}
-    <div class="card" style="grid-column:1/-1;text-align:center;padding:48px;">
-      <p style="color:#6b7280;">Пока нет открытых заявок.</p>
     </div>
     {% endfor %}
   </div>

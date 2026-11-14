@@ -13,7 +13,7 @@
 </div>
 
 <div class="profile-header">
-  <div class="profile-avatar">{{ (sponsor.company or sponsor.user.username)[0]|upper }}</div>
+  <div class="profile-avatar">{{ (sponsor.company or sponsor.user.username or '?')[0]|upper }}</div>
   <div class="profile-info">
     <h2>{{ sponsor.company or sponsor.user.username }}</h2>
     <p>Инвестор · {{ sponsor.user.email }}</p>
@@ -53,7 +53,7 @@
         <p>{{ project.description[:155] }}{% if project.description|length > 155 %}…{% endif %}</p>
 
         <div class="project-stats">
-          <span>Команда: <strong>{{ project.team.name or project.team.user.username }}</strong></span>
+          <span>Команда: <strong>{{ project.team.name or project.team.user.username or 'Команда' }}</strong></span>
         </div>
 
         <div class="progress-bar">

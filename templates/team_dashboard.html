@@ -17,7 +17,7 @@
 
 <div class="profile-header">
   <div class="profile-avatar">
-    {{ (team.name or team.user.username)[0]|upper }}
+    {{ (team.name or team.user.username or '?')[0]|upper }}
   </div>
 
   <div class="profile-info">

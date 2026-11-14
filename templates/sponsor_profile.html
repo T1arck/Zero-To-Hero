@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="profile-header">
-  <div class="profile-avatar">{{ sponsor.user.username[0]|upper }}</div>
+  <div class="profile-avatar">{{ (sponsor.user.username or '?')[0]|upper }}</div>
   <div class="profile-info">
     <h1>{{ sponsor.user.username }}</h1>
     <p>{{ sponsor.company or 'Спонсор' }} · {{ sponsor.user.email }}</p>
@@ -18,15 +18,9 @@
 <div class="two-col">
   <div>
     <div class="balance-card">
-      <div class="balance-label">Ваш баланс</div>
-      <div class="balance-value">{{ "%.0f"|format(sponsor.requests|sum(attribute='budget')) }} ₽</div>
-      <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;">Пополнить</button>
-    </div>
-    
-    <div class="card">
-      <div class="card-title">Расходы по категориям</div>
-      <div class="chart-container" style="height:200px;">
-        <canvas id="expenseChart"></canvas>
+      <div class="balance-label">Всего вложено</div>
+      <div class="balance-value">
+        {{ "%.0f"|format(sponsor.user.purchases|sum(attribute='amount') if sponsor.user.purchases is defined else 0) }} ₽
       </div>
     </div>
   </div>
@@ -48,95 +42,27 @@
       </form>
     </div>
     {% endif %}
-    
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div class="card-title" style="margin:0;">Мои спонсорства</div>
-        <a href="#" style="color:#6366f1;font-size:13px;text-decoration:none;">Все →</a>
-      </div>
-      {% for s in sponsor.requests %}
-        {% for resp in s.responses if resp.status == 'accepted' %}
-        <div class="list-item">
-          <div class="list-item-icon" style="background:#d1fae5;">🌱</div>
-          <div class="list-item-content">
-            <h4>
-              <a href="{{ url_for('request_detail', req_id=resp.request.id) }}"
-                 style="color:inherit;text-decoration:none">{{ resp.request.title }}</a>
-            </h4>
-            <p>{{ resp.team.name or 'Команда' }}</p>
-          </div>
-          <div>
-            <span class="tag tag-green">Активно</span>
-            <div class="list-item-value" style="color:#10b981;margin-top:4px;">+{{ "%.0f"|format(resp.request.budget) }} ₽</div>
-          </div>
-        </div>
-        {% endfor %}
-      {% else %}
-        <p style="color:#6b7280;text-align:center;padding:24px;">У вас пока нет спонсорств</p>
-      {% endfor %}
-    </div>
   </div>
 </div>
 
 <div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-    <div class="card-title" style="margin:0;">Мои заявки</div>
-    {% if not public|default(false) %}
-      <a href="{{ url_for('create_request') }}" class="btn btn-primary">+ Новая заявка</a>
-    {% endif %}
-  </div>
-  {% for r in sponsor.requests %}
-  <div class="list-item">
-    <div class="list-item-icon" style="background:#ede9fe;">📋</div>
-    <div class="list-item-content">
-      <h4>
-        <a href="{{ url_for('request_detail', req_id=r.id) }}"
-           style="color:inherit;text-decoration:none">{{ r.title }}</a>
-      </h4>
-      <p>{{ r.description[:100] }}{% if r.description|length > 100 %}…{% endif %}</p>
-    </div>
-    <div style="text-align:right;">
-      <span class="tag {% if r.status == 'open' %}tag-green{% elif r.status == 'taken' %}tag-blue{% else %}tag-orange{% endif %}">
-        {{ r.status }}
-      </span>
-      <div class="list-item-value" style="margin-top:4px;">{{ "%.0f"|format(r.budget) }} ₽</div>
-      <div style="font-size:11px;color:#6b7280;">Откликов: {{ r.responses|length }}</div>
-    </div>
-  </div>
-  {% else %}
-    <p style="color:#6b7280;text-align:center;padding:24px;">У вас пока нет заявок</p>
-  {% endfor %}
-</div>
-
-<div class="card">
-  <div class="card-title">Последние операции</div>
-  {% for s in sponsor.requests %}
-    {% for resp in s.responses if resp.status == 'accepted' %}
+  <div class="card-title">Мои покупки акций</div>
+  {% for purchase in sponsor.user.purchases if sponsor.user.purchases is defined %}
     <div class="list-item">
       <div class="list-item-icon" style="background:#fee2e2;">💸</div>
       <div class="list-item-content">
         <h4>
-          Спонсорство проекта
-          <a href="{{ url_for('request_detail', req_id=resp.request.id) }}"
-             style="color:inherit;text-decoration:none">{{ resp.request.title }}</a>
+          <a href="{{ url_for('project_detail', project_id=purchase.project.id) }}"
+             style="color:inherit;text-decoration:none">{{ purchase.project.title }}</a>
         </h4>
-        <p>{{ resp.request.created_at.strftime('%d.%m.%Y') if resp.request.created_at else '' }}</p>
+        <p>{{ purchase.created_at.strftime('%d.%m.%Y') if purchase.created_at else '' }}
+           · {{ purchase.shares }} акций</p>
       </div>
-      <div class="list-item-value" style="color:#ef4444;">-{{ "%.0f"|format(resp.request.budget) }} ₽</div>
+      <div class="list-item-value" style="color:#ef4444;">-{{ "%.2f"|format(purchase.amount) }} ₽</div>
     </div>
-    {% endfor %}
+  {% else %}
+    <p style="color:#6b7280;text-align:center;padding:24px;">Покупок пока нет</p>
   {% endfor %}
 </div>
-
-<script>
-  new Chart(document.getElementById('expenseChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Технологии', 'Образование', 'Экология'],
-      datasets: [{ data: [40, 35, 25], backgroundColor: ['#6366f1', '#10b981', '#f59e0b'] }]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-  });
-</script>
 
 {% endblock %}
