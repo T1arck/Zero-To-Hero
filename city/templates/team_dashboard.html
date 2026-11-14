@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Кабинет разработчика — InvestHub{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div>
+    <h1>Кабинет разработчика</h1>
+    <p style="color:var(--muted);margin-top:7px">
+      Здесь находятся ваши проекты и история их поддержки.
+    </p>
+  </div>
+
+  <a class="btn btn-primary" href="{{ url_for('create_project') }}">
+    ＋ Создать проект
+  </a>
+</div>
+
+<div class="profile-header">
+  <div class="profile-avatar">
+    {{ (team.name or team.user.username)[0]|upper }}
+  </div>
+
+  <div class="profile-info">
+    <h2>{{ team.name or team.user.username }}</h2>
+    <p>{{ team.field or 'Направление не указано' }} · {{ team.user.email }}</p>
+    <a class="btn btn-secondary" href="{{ url_for('team_profile') }}">
+      Настроить профиль команды
+    </a>
+  </div>
+</div>
+
+<div class="section-header">
+  <h2>Мои проекты</h2>
+  <span style="color:var(--muted)">{{ projects|length }} проектов</span>
+</div>
+
+<div class="projects-grid">
+  {% for project in projects %}
+    {% set goal = project.goal or 0 %}
+    {% set raised = project.raised or 0 %}
+    {% set progress = [((raised / goal * 100)|round|int), 100]|min if goal > 0 else 0 %}
+
+    <article class="project-card">
+      <div class="project-img">
+        🌸
+        <span class="project-tag">
+          {{ 'Сбор открыт' if project.status == 'active' else project.status }}
+        </span>
+      </div>
+
+      <div class="project-body">
+        <h3>{{ project.title }}</h3>
+        <p>{{ project.description }}</p>
+
+        <div class="progress-bar">
+          <div class="progress-fill" style="--progress:{{ progress }}%"></div>
+        </div>
+
+        <div class="progress-caption">
+          <span>
+            Собрано {{ '%.2f'|format(raised) }} ₽
+            из {{ '%.2f'|format(goal) }} ₽
+          </span>
+          <strong>{{ progress }}%</strong>
+        </div>
+
+        <h4 style="margin-top:22px">Кто поддержал проект</h4>
+
+        {% for donation in project.sponsorships %}
+          {% set donor_percent = ((donation.amount / goal * 100)|round(2)) if goal > 0 else 0 %}
+
+          <div class="list-item">
+            <div class="list-item-icon">💜</div>
+
+            <div class="list-item-content">
+              <strong>
+                {% if donation.sponsor %}
+                  {{ donation.sponsor.company or donation.sponsor.user.username }}
+                {% else %}
+                  Инвестор
+                {% endif %}
+              </strong>
+              <p>
+                {{ donation.created_at.strftime('%d.%m.%Y') if donation.created_at else '' }}
+              </p>
+            </div>
+
+            <div style="text-align:right">
+              <strong>{{ '%.2f'|format(donation.amount) }} ₽</strong>
+              <p>{{ donor_percent }}% от цели проекта</p>
+            </div>
+          </div>
+        {% else %}
+          <p style="color:var(--muted);margin-top:12px">
+            У проекта пока нет пожертвований.
+          </p>
+        {% endfor %}
+
+        <p style="margin-top:16px">
+          <a href="{{ url_for('project_detail', project_id=project.id) }}">
+            Открыть страницу проекта →
+          </a>
+        </p>
+      </div>
+    </article>
+  {% else %}
+    <div class="card empty-state" style="grid-column:1/-1">
+      <p>Пока проектов нет. Создайте проект — инвесторы смогут найти его в каталоге.</p>
+      <p style="margin-top:16px">
+        <a class="btn btn-primary" href="{{ url_for('create_project') }}">
+          Создать проект
+        </a>
+      </p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Создать проект — InvestHub{% endblock %}
+{% block content %}
+<div class="card" style="max-width:760px;margin:24px auto"><h1 class="card-title">Опубликовать проект</h1><p style="color:var(--muted);margin-bottom:20px">Заполните описание и цель сбора. Проект сохранится и станет виден инвесторам.</p>
+<form method="post">{{ form.hidden_tag() }}<div class="form-group"><label for="{{ form.title.id }}">{{ form.title.label.text }}</label>{{ form.title(class_='form-control',placeholder='Название проекта') }}{% for error in form.title.errors %}<div class="flash danger">{{ error }}</div>{% endfor %}</div><div class="form-group"><label for="{{ form.description.id }}">{{ form.description.label.text }}</label>{{ form.description(class_='form-control',rows='6',placeholder='Расскажите о цели и пользе проекта') }}{% for error in form.description.errors %}<div class="flash danger">{{ error }}</div>{% endfor %}</div><div class="form-group"><label for="{{ form.goal.id }}">{{ form.goal.label.text }}</label>{{ form.goal(class_='form-control',min='1',step='0.01') }}{% for error in form.goal.errors %}<div class="flash danger">{{ error }}</div>{% endfor %}</div>{{ form.submit(class_='btn btn-primary') }} <a class="btn btn-secondary" href="{{ url_for('account') }}">Отмена</a></form></div>
+{% endblock %}

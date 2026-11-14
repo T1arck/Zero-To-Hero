@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ project.title }} — InvestHub{% endblock %}
+
+{% block content %}
+{% set goal = project.goal or 0 %}
+{% set raised = project.raised or 0 %}
+{% set remaining = [goal - raised, 0]|max %}
+
+<div class="card" style="max-width:900px;margin:0 auto">
+  <div class="project-img" style="border-radius:14px">
+    🌸
+    <span class="project-tag">{{ project.team.field or 'Проект' }}</span>
+  </div>
+
+  <h1 style="margin:24px 0 12px">{{ project.title }}</h1>
+
+  <p style="color:var(--muted);line-height:1.7;white-space:pre-line">
+    {{ project.description }}
+  </p>
+
+  <p style="margin-top:18px">
+    Команда:
+    <strong>{{ project.team.name or project.team.user.username }}</strong>
+  </p>
+
+  <div class="progress-bar">
+    <div class="progress-fill" style="--progress:{{ progress }}%"></div>
+  </div>
+
+  <div class="progress-caption">
+    <span>{{ '%.2f'|format(raised) }} ₽ из {{ '%.2f'|format(goal) }} ₽</span>
+    <strong>{{ progress }}% собрано</strong>
+  </div>
+
+  {% if current_user.is_authenticated
+        and current_user.role == 'sponsor'
+        and project.status == 'active'
+        and remaining > 0 %}
+    <form
+      class="donate-form"
+      method="post"
+      action="{{ url_for('donate', project_id=project.id) }}"
+    >
+      {{ form.hidden_tag() }}
+
+      <input
+        class="form-control"
+        type="number"
+        name="amount"
+        min="1"
+        max="{{ remaining }}"
+        step="0.01"
+        required
+        placeholder="Сумма, ₽"
+        aria-label="Сумма пожертвования"
+      >
+
+      <button class="btn btn-primary" type="submit">
+        Поддержать проект
+      </button>
+    </form>
+  {% elif remaining <= 0 %}
+    <p style="margin-top:18px">Цель сбора достигнута.</p>
+  {% elif not current_user.is_authenticated %}
+    <p style="margin-top:18px">
+      <a href="{{ url_for('login') }}">Войдите как инвестор</a>,
+      чтобы поддержать проект.
+    </p>
+  {% endif %}
+
+  <section style="margin-top:32px">
+    <h2>Спонсоры проекта</h2>
+
+    {% for sponsor, total_amount in sponsors %}
+      {% set sponsor_percent = ((total_amount / goal * 100)|round(2)) if goal > 0 else 0 %}
+
+      <div class="list-item">
+        <div class="list-item-icon">💜</div>
+
+        <div class="list-item-content">
+          <strong>{{ sponsor.company or sponsor.user.username }}</strong>
+          <p>Вклад в цель проекта</p>
+        </div>
+
+        <div style="text-align:right">
+          <strong>{{ '%.2f'|format(total_amount) }} ₽</strong>
+          <p>{{ sponsor_percent }}% от цели</p>
+        </div>
+      </div>
+    {% else %}
+      <p style="color:var(--muted);margin-top:14px">
+        Пока проект никто не поддержал.
+      </p>
+    {% endfor %}
+  </section>
+
+  <p style="margin-top:24px">
+    <a href="{{ url_for('projects_catalog') }}">← Вернуться к проектам</a>
+  </p>
+</div>
+{% endblock %}
