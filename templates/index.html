@@ -1,58 +1,64 @@
 {% extends "base.html" %}
-{% block title %}Главная — InvestHub{% endblock %}
+{% block title %}Главная — InvestLab{% endblock %}
 {% block content %}
 
 <section class="hero">
-  <h1>Инвестируй<br>в инновации</h1>
-  <p>Платформа, где исследователи находят поддержку, а спонсоры — перспективные проекты</p>
+  <h1>Инвестируй<br>в будущее</h1>
+  <p>Платформа, где исследователи превращают идеи в продукты, а инвесторы получают долю в интеллектуальной собственности (ИС).</p>
   {% if not current_user.is_authenticated %}
-    <a class="hero-btn" href="{{ url_for('register') }}">Все проекты</a>
+    <a class="hero-btn" href="{{ url_for('register') }}">Начать инвестировать</a>
   {% else %}
-    <a class="hero-btn" href="{{ url_for('projects_catalog') }}">Все проекты</a>
+    <a class="hero-btn" href="{{ url_for('projects_catalog') }}">Перейти в каталог</a>
   {% endif %}
 </section>
 
 <section id="projects">
   <div class="section-header">
     <h2>Популярные проекты</h2>
+    <a href="{{ url_for('projects_catalog') }}" style="color:var(--neon-cyan); font-weight:600; font-size:16px;">Смотреть все →</a>
   </div>
+  
   <div class="projects-grid">
     {% for p in projects %}
       {% set progress = p.progress %}
-      {% set img_class = ['eco', 'ai', 'space'][loop.index0 % 3] %}
-      {% set img_emoji = ['🧪', '🔬', '⚗️'][loop.index0 % 3] %}
+      {% set img_emoji = ['🧬', '🔬', '⚗️', '🛰️', '🧪', '🌌'][loop.index0 % 6] %}
+      
     <article class="project-card">
-      <a
-        href="{{ url_for('project_detail', project_id=p.id) }}"
-        style="color:inherit;text-decoration:none;display:block"
-        title="Открыть проект «{{ p.title }}»"
-      >
-        <div class="project-img {{ img_class }}">
+      <a href="{{ url_for('project_detail', project_id=p.id) }}" style="color:inherit;display:block">
+        <div class="project-img">
           {{ img_emoji }}
-          <span class="project-tag">{{ p.team.field or 'Наука' }}</span>
+          <span class="project-tag">{{ p.ip_asset_type[:18] if p.ip_asset_type else 'Наука' }}</span>
         </div>
         <div class="project-body">
           <h3>{{ p.title }}</h3>
-          <p style="word-break: break-word;">
-            {{ p.description[:80] }}{% if p.description|length > 80 %}…{% endif %}
+          <p>
+            {{ p.description[:90] }}{% if p.description|length > 90 %}…{% endif %}
           </p>
+          
           <div class="progress-bar">
             <div class="progress-fill" style="--progress:{{ progress }}%"></div>
           </div>
+          
           <div class="progress-caption">
-            <span>{{ p.sold_shares }} из {{ p.total_shares }} акций</span>
-            <strong>{{ progress }}%</strong>
+            <span>{{ p.sold_shares }} из {{ p.total_shares }} долей</span>
+            <strong style="color:var(--neon-cyan); font-size: 16px;">{{ progress }}%</strong>
           </div>
-          <div class="project-stats" style="margin-top:8px">
-            <span><strong>{{ '%.2f'|format(p.share_price) }} ₽</strong> / акция</span>
-            <span>Осталось: {{ p.shares_left }}</span>
+          
+          <div class="project-stats" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+            <span style="color:var(--muted); font-size: 13px;">Цена доли:</span>
+            <strong style="font-size: 16px;">{{ '%.2f'|format(p.share_price) }} ₽</strong>
           </div>
         </div>
       </a>
     </article>
     {% else %}
-    <div class="card" style="grid-column:1/-1;text-align:center;padding:48px;">
-      <p style="color:#6b7280;">Пока нет активных проектов. Станьте первым!</p>
+    <div class="empty-state" style="grid-column:1/-1;">
+      <div style="font-size:60px; margin-bottom:24px; filter: drop-shadow(0 0 20px rgba(0,242,254,0.5));">🔭</div>
+      <h3 style="color:#fff; font-size:24px; margin-bottom:12px;">Космос пока пуст</h3>
+      <p style="margin-bottom:24px;">Здесь появятся научные проекты, как только исследователи опубликуют их. Станьте первым!</p>
+      {% if current_user.is_authenticated and current_user.role == 'team' %}
+        <a class="btn btn-primary" href="{{ url_for('create_project') }}">Создать проект</a>
+      {% endif %}
     </div>
     {% endfor %}
   </div>

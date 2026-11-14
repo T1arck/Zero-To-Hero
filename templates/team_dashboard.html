@@ -1,37 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Кабинет разработчика — InvestHub{% endblock %}
+{% block title %}Кабинет разработчика — InvestLab{% endblock %}
 
 {% block content %}
-<div class="section-header">
+
+<!-- Шапка кабинета -->
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; flex-wrap: wrap; gap: 20px;">
   <div>
-    <h1>Кабинет разработчика</h1>
-    <p style="color:var(--muted);margin-top:7px">
-      Здесь находятся ваши проекты и история их поддержки.
+    <h1 style="margin: 0 0 8px; font-size: 32px; color: #fff; letter-spacing: -0.5px;">Кабинет разработчика</h1>
+    <p style="color: var(--muted); margin: 0; font-size: 16px;">
+      Здесь находятся ваши проекты и история проданных долей ИС.
     </p>
   </div>
-
-  <a class="btn btn-primary" href="{{ url_for('create_project') }}">
+  <a class="btn btn-primary" href="{{ url_for('create_project') }}" style="padding: 14px 28px; font-size: 15px;">
     ＋ Создать проект
   </a>
 </div>
 
-<div class="profile-header">
-  <div class="profile-avatar">
+<!-- Блок профиля команды -->
+<div class="card" style="padding: 30px; margin-bottom: 40px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
+  <!-- Красивый круглый аватар -->
+  <div style="width: 80px; height: 80px; flex-shrink: 0; display: grid; place-items: center; font-size: 32px; font-weight: 800; color: #000; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); border-radius: 50%; box-shadow: 0 0 25px rgba(0, 242, 254, 0.4);">
     {{ (team.name or team.user.username or '?')[0]|upper }}
   </div>
+  
+  <div style="flex: 1; min-width: 250px;">
+    <h2 style="margin: 0 0 6px; font-size: 24px; color: #fff;">
+      {{ team.name or team.user.username }}
+    </h2>
+    <p style="margin: 0; color: var(--muted); font-size: 15px;">
+      {{ team.field or 'Направление не указано' }} 
+      <span style="color: var(--line); margin: 0 8px;">|</span> 
+      <span style="color: var(--neon-cyan);">{{ team.user.email }}</span>
+    </p>
+  </div>
 
-  <div class="profile-info">
-    <h2>{{ team.name or team.user.username }}</h2>
-    <p>{{ team.field or 'Направление не указано' }} · {{ team.user.email }}</p>
-    <a class="btn btn-secondary" href="{{ url_for('team_profile') }}">
-      Настроить профиль команды
-    </a>
+  <div style="flex-shrink: 0; margin-left: auto;">
+    <a class="btn btn-secondary" href="{{ url_for('team_profile') }}">Настроить профиль</a>
   </div>
 </div>
 
-<div class="section-header">
-  <h2>Мои проекты</h2>
-  <span style="color:var(--muted)">{{ projects|length }} проектов</span>
+<!-- Список проектов -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+  <h2 style="margin: 0; font-size: 24px; color: #fff;">Мои проекты</h2>
+  <span style="color: var(--muted); font-size: 15px; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 8px;">{{ projects|length }} проектов</span>
 </div>
 
 <div class="projects-grid">
@@ -39,16 +50,12 @@
     {% set progress = project.progress %}
 
     <article class="project-card">
-      <a
-        href="{{ url_for('project_detail', project_id=project.id) }}"
-        style="color:inherit;text-decoration:none;display:block"
-        title="Открыть проект «{{ project.title }}»"
-      >
+      <a href="{{ url_for('project_detail', project_id=project.id) }}" style="color:inherit; text-decoration:none; display:block;">
         <div class="project-img">
           🧪
           <span class="project-tag">
             {% if project.status == 'active' %}Идёт сбор
-            {% elif project.status == 'funded' %}Финансирование завершено
+            {% elif project.status == 'funded' %}Завершено
             {% else %}{{ project.status }}{% endif %}
           </span>
         </div>
@@ -56,13 +63,12 @@
 
       <div class="project-body">
         <h3>
-          <a
-            href="{{ url_for('project_detail', project_id=project.id) }}"
-            style="color:inherit;text-decoration:none"
-          >{{ project.title }}</a>
+          <a href="{{ url_for('project_detail', project_id=project.id) }}" style="color:#fff; text-decoration:none;">
+            {{ project.title }}
+          </a>
         </h3>
-        <p style="word-break: break-word;">
-          {{ project.description[:150] }}{% if project.description|length > 150 %}…{% endif %}
+        <p style="word-break: break-word; margin-bottom: 16px;">
+          {{ project.description[:120] }}{% if project.description|length > 120 %}…{% endif %}
         </p>
 
         <div class="progress-bar">
@@ -70,62 +76,44 @@
         </div>
 
         <div class="progress-caption">
-          <span>{{ project.sold_shares }} из {{ project.total_shares }} акций</span>
-          <strong>{{ progress }}%</strong>
+          <span>{{ project.sold_shares }} из {{ project.total_shares }} долей</span>
+          <strong style="color: var(--neon-cyan);">{{ progress }}%</strong>
         </div>
 
-        <div class="project-stats" style="margin-top:8px">
-          <span>Цена: <strong>{{ '%.2f'|format(project.share_price) }} ₽</strong></span>
-          <span>Собрано: <strong>{{ '%.2f'|format(project.raised) }} ₽</strong></span>
+        <div class="project-stats" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">
+          <span style="color:var(--muted);">Собрано:</span>
+          <strong>{{ '%.2f'|format(project.raised) }} ₽</strong>
         </div>
 
-        <h4 style="margin-top:22px">Кто купил акции</h4>
+        <!-- Список инвесторов проекта (кратко) -->
+        <h4 style="margin-top: 20px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Инвесторы</h4>
 
         {% for donation in project.sponsorships %}
           {% set donor_percent = ((donation.shares / project.total_shares * 100)|round(2)) if project.total_shares > 0 else 0 %}
-
-          <div class="list-item">
-            <div class="list-item-icon">💜</div>
-
-            <div class="list-item-content">
-              <strong>
-                {% if donation.sponsor %}
-                  {{ donation.sponsor.company or donation.sponsor.user.username }}
-                {% else %}
-                  Инвестор
-                {% endif %}
-              </strong>
-              <p>
-                {{ donation.created_at.strftime('%d.%m.%Y') if donation.created_at else '' }}
-              </p>
-            </div>
-
-            <div style="text-align:right">
-              <strong>{{ donation.shares }} акций</strong>
-              <p>{{ '%.2f'|format(donation.amount) }} ₽ · {{ donor_percent }}%</p>
-            </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 13px;">
+            <span style="color: #fff;">
+              {% if donation.sponsor %}
+                {{ donation.sponsor.company or donation.sponsor.user.username }}
+              {% else %}
+                Инвестор
+              {% endif %}
+            </span>
+            <span style="color: var(--neon-cyan); font-weight: 600;">
+              {{ donation.shares }} долей
+            </span>
           </div>
         {% else %}
-          <p style="color:var(--muted);margin-top:12px">
-            У проекта пока нет акционеров.
-          </p>
+          <p style="color:var(--muted); margin-top: 10px; font-size: 13px;">У проекта пока нет инвесторов.</p>
         {% endfor %}
 
-        <p style="margin-top:16px">
-          <a href="{{ url_for('project_detail', project_id=project.id) }}">
-            Открыть страницу проекта →
-          </a>
-        </p>
       </div>
     </article>
   {% else %}
-    <div class="card empty-state" style="grid-column:1/-1">
-      <p>Пока проектов нет. Создайте проект — инвесторы смогут найти его в каталоге.</p>
-      <p style="margin-top:16px">
-        <a class="btn btn-primary" href="{{ url_for('create_project') }}">
-          Создать проект
-        </a>
-      </p>
+    <div class="empty-state" style="grid-column:1/-1;">
+      <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.8;">📂</div>
+      <h3 style="color:#fff; margin-bottom: 8px;">Пока проектов нет</h3>
+      <p style="margin-bottom: 24px;">Создайте свой первый научный проект, и инвесторы смогут найти его в каталоге.</p>
+      <a class="btn btn-primary" href="{{ url_for('create_project') }}">Создать проект</a>
     </div>
   {% endfor %}
 </div>

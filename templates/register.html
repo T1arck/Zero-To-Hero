@@ -1,59 +1,58 @@
 {% extends "base.html" %}
-{% block title %}Регистрация — InvestHub{% endblock %}
+{% block title %}Регистрация — InvestLab{% endblock %}
 {% block content %}
-<div style="max-width:480px;margin:48px auto;">
-  <div class="card auth-card">
-    <h1>Регистрация</h1>
-    <form method="post" novalidate>
-      {{ form.hidden_tag() }}
+<div class="auth-card">
+  <h1>Регистрация</h1>
+  
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
 
-      <div class="form-group">
-        {{ form.username.label }}
-        {{ form.username(class="form-control", placeholder="От 3 до 30 символов", autocomplete="username") }}
-        {% for error in form.username.errors %}
-          <div class="flash danger">{{ error }}</div>
-        {% endfor %}
-      </div>
+    <div class="form-group">
+      {{ form.username.label }}
+      {{ form.username(class="form-control", placeholder="От 3 до 30 символов", autocomplete="username") }}
+      {% for error in form.username.errors %}
+        <div class="flash danger" style="padding: 10px 14px; margin-top: 4px; border-radius: 8px; font-size: 13px;">{{ error }}</div>
+      {% endfor %}
+    </div>
 
-      <div class="form-group">
-        {{ form.email.label }}
-        {{ form.email(class="form-control", placeholder="you@example.com", autocomplete="email") }}
-        {% for error in form.email.errors %}
-          <div class="flash danger">{{ error }}</div>
-        {% endfor %}
-      </div>
+    <div class="form-group">
+      {{ form.email.label }}
+      {{ form.email(class="form-control", placeholder="you@example.com", autocomplete="email") }}
+      {% for error in form.email.errors %}
+        <div class="flash danger" style="padding: 10px 14px; margin-top: 4px; border-radius: 8px; font-size: 13px;">{{ error }}</div>
+      {% endfor %}
+    </div>
 
-      <div class="form-group">
-        {{ form.role.label }}
-        {{ form.role(class="form-control") }}
-        {% for error in form.role.errors %}
-          <div class="flash danger">{{ error }}</div>
-        {% endfor %}
-      </div>
+    <div class="form-group">
+      {{ form.role.label }}
+      {{ form.role(class="form-control") }}
+      {% for error in form.role.errors %}
+        <div class="flash danger" style="padding: 10px 14px; margin-top: 4px; border-radius: 8px; font-size: 13px;">{{ error }}</div>
+      {% endfor %}
+    </div>
 
-      <div class="form-group">
-        {{ form.password.label }}
-        {{ form.password(class="form-control", placeholder="Минимум 6 символов", autocomplete="new-password") }}
-        {% for error in form.password.errors %}
-          <div class="flash danger">{{ error }}</div>
-        {% endfor %}
-      </div>
+    <div class="form-group">
+      {{ form.password.label }}
+      {{ form.password(class="form-control", placeholder="Минимум 6 символов", autocomplete="new-password") }}
+      {% for error in form.password.errors %}
+        <div class="flash danger" style="padding: 10px 14px; margin-top: 4px; border-radius: 8px; font-size: 13px;">{{ error }}</div>
+      {% endfor %}
+    </div>
 
-      <div class="form-group">
-        {{ form.password2.label }}
-        {{ form.password2(class="form-control", placeholder="Повторите пароль", autocomplete="new-password") }}
-        {% for error in form.password2.errors %}
-          <div class="flash danger">{{ error }}</div>
-        {% endfor %}
-      </div>
+    <div class="form-group">
+      {{ form.password2.label }}
+      {{ form.password2(class="form-control", placeholder="Повторите пароль", autocomplete="new-password") }}
+      {% for error in form.password2.errors %}
+        <div class="flash danger" style="padding: 10px 14px; margin-top: 4px; border-radius: 8px; font-size: 13px;">{{ error }}</div>
+      {% endfor %}
+    </div>
 
-      <button class="btn btn-primary" type="submit" style="width:100%;">Создать аккаунт</button>
-    </form>
+    <button class="btn btn-primary" type="submit" style="width:100%;">Создать аккаунт</button>
+  </form>
 
-    <p class="auth-meta">
-      Уже есть аккаунт?
-      <a href="{{ url_for('login') }}">Войти</a>
-    </p>
-  </div>
+  <p class="auth-meta">
+    Уже есть аккаунт?
+    <a href="{{ url_for('login') }}">Войти</a>
+  </p>
 </div>
 {% endblock %}

@@ -266,13 +266,16 @@ def create_project():
             description=form.description.data.strip(),
             total_shares=form.total_shares.data,
             share_price=form.share_price.data,
+            ip_asset_type=form.ip_asset_type.data.strip(),
+            royalty_percentage=form.royalty_percentage.data,
+            monetization_scenario=form.monetization_scenario.data.strip(),
             sold_shares=0,
             status='active',
         )
         db.session.add(project)
         db.session.commit()
 
-        flash('Проект опубликован. Акции доступны инвесторам.', 'success')
+        flash('Проект опубликован. Доли доступны инвесторам.', 'success')
         return redirect(url_for('account'))
 
     return render_template('create_project.html', form=form)
@@ -300,7 +303,7 @@ def create_project_update(project_id):
         return redirect(url_for('project_detail', project_id=project.id))
 
     return render_template(
-        'update.html', # <--- ИСПРАВЛЕНО ЗДЕСЬ
+        'update.html', 
         form=form,
         project=project,
     )
@@ -356,30 +359,37 @@ def buy_shares(project_id):
     form = BuySharesForm()
 
     if not form.validate_on_submit():
-        flash('Укажите корректное количество акций.', 'danger')
+        flash('Укажите корректную сумму инвестиций.', 'danger')
         return redirect(
             url_for('project_detail', project_id=project.id)
         )
 
     if project.status != 'active':
-        flash('Проект больше не продаёт акции.', 'warning')
+        flash('Проект больше не продаёт доли.', 'warning')
         return redirect(
             url_for('project_detail', project_id=project.id)
         )
 
-    shares = int(form.shares.data)
+    amount = form.amount.data
+    shares = int(amount / project.share_price)
+
+    if shares < 1:
+        flash('Сумма слишком мала для покупки хотя бы одной доли.', 'warning')
+        return redirect(
+            url_for('project_detail', project_id=project.id)
+        )
 
     if shares > project.shares_left:
         flash(
-            f'Осталось всего {project.shares_left} акций. '
-            'Укажите меньшее количество.',
+            f'Осталось всего {project.shares_left} долей. '
+            'Укажите меньшую сумму.',
             'warning',
         )
         return redirect(
             url_for('project_detail', project_id=project.id)
         )
 
-    amount = round(shares * project.share_price, 2)
+    actual_amount = round(shares * project.share_price, 2)
     sponsor = Sponsor.query.filter_by(
         user_id=current_user.id
     ).first_or_404()
@@ -394,13 +404,13 @@ def buy_shares(project_id):
             project_id=project.id,
             sponsor_id=sponsor.id,
             shares=shares,
-            amount=amount,
+            amount=actual_amount,
         )
     )
     db.session.commit()
 
     flash(
-        f'Куплено {shares} акций на {amount:.2f} ₽. Спасибо за инвестицию!',
+        f'Куплено {shares} долей на {actual_amount:.2f} ₽. Спасибо за инвестицию!',
         'success',
     )
     return redirect(

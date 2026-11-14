@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ project.title }} — InvestHub{% endblock %}
+{% block title %}{{ project.title }} — InvestLab{% endblock %}
 
 {% block content %}
 {% set goal = project.goal %}
@@ -14,6 +14,22 @@
 
   <h1 style="margin:24px 0 12px">{{ project.title }}</h1>
 
+  <!-- Блок ИС (без Вехи) -->
+  <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; background: rgba(255,255,255,.05); padding: 20px; border-radius: 12px; border: 1px solid var(--line);">
+    <div style="flex: 1; min-width: 200px;">
+      <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Тип актива</div>
+      <div style="font-weight: 600; color: var(--neon-cyan); margin-top: 4px; font-size: 16px;">{{ project.ip_asset_type }}</div>
+    </div>
+    <div style="flex: 1; min-width: 200px;">
+      <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Доля роялти</div>
+      <div style="font-weight: 600; color: var(--neon-cyan); margin-top: 4px; font-size: 16px;">{{ project.royalty_percentage }}%</div>
+    </div>
+    <div style="flex: 1; min-width: 200px;">
+      <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Сценарий монетизации</div>
+      <div style="font-weight: 600; color: #fff; margin-top: 4px; font-size: 14px;">{{ project.monetization_scenario }}</div>
+    </div>
+  </div>
+
   <p style="color:var(--muted);line-height:1.7;white-space:pre-line;word-break:break-word;">
     {{ project.description }}
   </p>
@@ -23,79 +39,112 @@
     <strong>{{ project.team.name or project.team.user.username or 'Команда' }}</strong>
   </p>
 
-  <div class="progress-bar">
+  <div class="progress-bar" style="margin-top: 24px;">
     <div class="progress-fill" style="--progress:{{ project.progress }}%"></div>
   </div>
 
   <div class="progress-caption">
-    <span>Продано {{ project.sold_shares }} из {{ project.total_shares }} акций</span>
+    <span>Продано {{ project.sold_shares }} из {{ project.total_shares }} долей</span>
     <strong>{{ project.progress }}%</strong>
   </div>
 
-  <div class="project-stats" style="margin-top:10px">
-    <span>Цена акции: <strong>{{ '%.2f'|format(project.share_price) }} ₽</strong></span>
-    <span>Собрано: <strong>{{ '%.2f'|format(raised) }} ₽</strong> из {{ '%.2f'|format(goal) }} ₽</span>
-    <span>Осталось: <strong>{{ shares_left }} акций</strong></span>
+  <div class="project-stats" style="margin-top:10px; flex-wrap: wrap; gap: 16px;">
+    <span>Цена доли: <strong>{{ '%.2f'|format(project.share_price) }} ₽</strong></span>
+    <span>Оценка ИС: <strong>{{ '%.2f'|format(project.ip_valuation) }} ₽</strong></span>
+    <span>Осталось: <strong>{{ project.shares_left }} долей</strong></span>
   </div>
 
   {% if current_user.is_authenticated
         and current_user.role == 'sponsor'
         and project.status == 'active'
-        and shares_left > 0 %}
-    <form
-      class="donate-form"
-      method="post"
-      action="{{ url_for('buy_shares', project_id=project.id) }}"
-    >
-      {{ form.hidden_tag() }}
-
-      <input
-        class="form-control"
-        type="number"
-        name="shares"
-        min="1"
-        max="{{ shares_left }}"
-        step="1"
-        required
-        placeholder="Сколько акций купить"
-        aria-label="Количество акций"
-      >
-
-      <button class="btn btn-primary" type="submit">
-        Купить акции
-      </button>
-    </form>
-  {% elif shares_left <= 0 %}
-    <p style="margin-top:18px">Все акции проекта распроданы.</p>
+        and project.shares_left > 0 %}
+    <!-- Блок сделки с калькулятором -->
+    <div style="margin-top: 32px; padding: 24px; background: rgba(35, 23, 40, .8); border-radius: 14px; border: 1px solid var(--line);">
+      <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 20px;">Инвестировать в ИС</h3>
+      
+      <form class="donate-form" method="post" action="{{ url_for('buy_shares', project_id=project.id) }}">
+        {{ form.hidden_tag() }}
+        <input
+          class="form-control"
+          type="number"
+          name="amount"
+          id="invest-amount"
+          min="1"
+          step="0.01"
+          required
+          placeholder="Сумма инвестиций (₽)"
+          aria-label="Сумма инвестиций"
+          oninput="calculateShare()"
+        >
+        <button class="btn btn-primary" type="submit" style="white-space: nowrap;">
+          Купить долю в ИС
+        </button>
+      </form>
+      
+      <div id="calculation-result" style="margin-top: 16px; color: #fff; font-size: 15px; line-height: 1.6; padding: 12px; background: rgba(255,255,255,.05); border-radius: 8px; display: none;"></div>
+      
+      <div style="margin-top: 20px; font-size: 13px; color: var(--muted); line-height: 1.5; border-top: 1px solid var(--line); padding-top: 16px;">
+        <strong>⚖️ Юридические условия:</strong> Модель демонстрирует концепцию долевого участия в ИС. Реальные сделки регулируются лицензионными договорами и требуют участия юристов. Все расчёты являются демонстрационными.
+      </div>
+    </div>
+    
+    <script>
+    function calculateShare() {
+        const amountInput = document.getElementById('invest-amount');
+        const amount = parseFloat(amountInput.value);
+        const sharePrice = {{ project.share_price }};
+        const totalShares = {{ project.total_shares }};
+        const ipValuation = totalShares * sharePrice;
+        
+        const resultDiv = document.getElementById('calculation-result');
+        
+        if (!amount || amount <= 0) {
+            resultDiv.style.display = 'none';
+            return;
+        }
+        
+        const shares = Math.floor(amount / sharePrice);
+        const actualCost = shares * sharePrice;
+        const percent = (actualCost / ipValuation) * 100;
+        const forecastIncome = actualCost * 3; 
+        
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+            Вы получаете <strong style="color:#f4bdd4; font-size: 18px;">${percent.toFixed(2)}%</strong> доли в ИС (${shares} долей).<br>
+            Итоговая стоимость пакета: <strong>${actualCost.toLocaleString('ru-RU')} ₽</strong>.<br>
+            Прогноз дохода при монетизации (базовый сценарий): <strong>~${forecastIncome.toLocaleString('ru-RU')} ₽</strong>.
+        `;
+    }
+    </script>
+  {% elif project.shares_left <= 0 %}
+    <p style="margin-top:18px; font-weight: bold; color: #ffb1b1;">Все доли проекта распроданы.</p>
   {% elif not current_user.is_authenticated %}
     <p style="margin-top:18px">
       <a href="{{ url_for('login') }}">Войдите как инвестор</a>,
-      чтобы купить акции проекта.
+      чтобы купить доли проекта.
     </p>
   {% endif %}
 
-  <section style="margin-top:32px">
-    <h2>Акционеры проекта</h2>
+  <section style="margin-top:40px">
+    <h2>Держатели долей</h2>
 
     {% for sponsor, total_shares, total_amount in sponsors %}
       {% set sponsor_percent = ((total_shares / project.total_shares * 100)|round(2)) if project.total_shares > 0 else 0 %}
 
       <div class="list-item">
         <div class="list-item-icon">💜</div>
-
         <div class="list-item-content">
           <strong>{{ sponsor.company or sponsor.user.username }}</strong>
-          <p>Владеет акциями проекта</p>
+          <p>Владеет долями в ИС проекта</p>
         </div>
-
         <div style="text-align:right">
-          <strong>{{ total_shares }} акций</strong>
+          <strong>{{ total_shares }} долей</strong>
           <p>{{ '%.2f'|format(total_amount) }} ₽ · {{ sponsor_percent }}%</p>
         </div>
       </div>
     {% else %}
       <p style="color:var(--muted);margin-top:14px">
-        Пока никто не купил акции.
+        Пока никто не купил доли.
       </p>
     {% endfor %}
   </section>
@@ -110,7 +159,7 @@
 
     {% for update in project.updates %}
       <div class="card" style="margin-bottom:12px; background:rgba(255,255,255,.03);">
-        <h4 style="color:#f4bdd4; margin-bottom:4px;">{{ update.title }}</h4>
+        <h4 style="color:var(--neon-cyan); margin-bottom:4px;">{{ update.title }}</h4>
         <p style="font-size:12px; color:var(--muted); margin-bottom:12px;">
           {{ update.created_at.strftime('%d.%m.%Y %H:%M') if update.created_at else '' }}
         </p>

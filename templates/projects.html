@@ -6,7 +6,7 @@
   <div>
     <h1>Каталог проектов</h1>
     <p style="color:var(--muted);margin-top:7px">
-      Купите акции понравившегося проекта и станьте его акционером.
+      Купите доли в интеллектуальной собственности понравившегося проекта и станьте совладельцем.
     </p>
   </div>
 </div>
@@ -42,16 +42,16 @@
           </div>
 
           <div class="progress-caption">
-            <span>{{ project.sold_shares }} из {{ project.total_shares }} акций</span>
+            <span>{{ project.sold_shares }} из {{ project.total_shares }} долей</span>
             <strong>{{ progress }}%</strong>
           </div>
 
           <div class="project-stats" style="margin-top:8px">
-            <span>Цена: <strong>{{ '%.2f'|format(project.share_price) }} ₽ / акция</strong></span>
+            <span>Цена: <strong>{{ '%.2f'|format(project.share_price) }} ₽ / доля</strong></span>
             <span>Осталось: <strong>{{ project.shares_left }}</strong></span>
           </div>
 
-          <p style="margin-top:14px">Открыть проект и список акционеров →</p>
+          <p style="margin-top:14px">Открыть проект и список инвесторов →</p>
         </div>
       </a>
     </article>

@@ -1,61 +1,75 @@
 {% extends "base.html" %}
-{% block title %}Кабинет инвестора — InvestHub{% endblock %}
+{% block title %}Кабинет инвестора — InvestLab{% endblock %}
 
 {% block content %}
-<div class="section-header">
+
+<!-- Шапка кабинета -->
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; flex-wrap: wrap; gap: 20px;">
   <div>
-    <h1>Кабинет инвестора</h1>
-    <p style="color:var(--muted);margin-top:7px">
-      Покупайте акции проектов — прогресс обновляется после каждой покупки.
+    <h1 style="margin: 0 0 8px; font-size: 32px; color: #fff; letter-spacing: -0.5px;">Кабинет инвестора</h1>
+    <p style="color: var(--muted); margin: 0; font-size: 16px;">
+      Покупайте доли в ИС проектов — прогресс обновляется после каждой сделки.
     </p>
   </div>
-  <a class="btn btn-primary" href="{{ url_for('projects_catalog') }}">Весь каталог</a>
+  <a class="btn btn-primary" href="{{ url_for('projects_catalog') }}" style="padding: 14px 28px; font-size: 15px;">
+    Весь каталог
+  </a>
 </div>
 
-<div class="profile-header">
-  <div class="profile-avatar">{{ (sponsor.company or sponsor.user.username or '?')[0]|upper }}</div>
-  <div class="profile-info">
-    <h2>{{ sponsor.company or sponsor.user.username }}</h2>
-    <p>Инвестор · {{ sponsor.user.email }}</p>
+<!-- Блок профиля инвестора -->
+<div class="card" style="padding: 30px; margin-bottom: 40px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
+  <div style="width: 80px; height: 80px; flex-shrink: 0; display: grid; place-items: center; font-size: 32px; font-weight: 800; color: #000; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); border-radius: 50%; box-shadow: 0 0 25px rgba(0, 242, 254, 0.4);">
+    {{ (sponsor.company or sponsor.user.username or '?')[0]|upper }}
+  </div>
+  
+  <div style="flex: 1; min-width: 250px;">
+    <h2 style="margin: 0 0 6px; font-size: 24px; color: #fff;">
+      {{ sponsor.company or sponsor.user.username }}
+    </h2>
+    <p style="margin: 0; color: var(--muted); font-size: 15px;">
+      Инвестор 
+      <span style="color: var(--line); margin: 0 8px;">|</span> 
+      <span style="color: var(--neon-cyan);">{{ sponsor.user.email }}</span>
+    </p>
+  </div>
+
+  <div style="flex-shrink: 0; margin-left: auto;">
     <a class="btn btn-secondary" href="{{ url_for('sponsor_profile') }}">Настроить профиль</a>
   </div>
 </div>
 
-<div class="section-header">
-  <h2>Проекты с доступными акциями</h2>
-  <span style="color:var(--muted)">{{ projects|length }} проектов</span>
+<!-- Список доступных проектов -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+  <h2 style="margin: 0; font-size: 24px; color: #fff;">Проекты с доступными долями</h2>
+  <span style="color: var(--muted); font-size: 15px; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 8px;">{{ projects|length }} проектов</span>
 </div>
 
-<div class="projects-grid">
+<!-- Увеличен gap для карточек -->
+<div class="projects-grid" style="gap: 30px;">
   {% for project in projects %}
     {% set progress = project.progress %}
     {% set shares_left = project.shares_left %}
 
     <article class="project-card">
-      <a
-        href="{{ url_for('project_detail', project_id=project.id) }}"
-        style="color:inherit;text-decoration:none;display:block"
-        title="Открыть проект «{{ project.title }}»"
-      >
+      <a href="{{ url_for('project_detail', project_id=project.id) }}" style="color:inherit; text-decoration:none; display:block;">
         <div class="project-img">
           🧪
-          <span class="project-tag">{{ project.team.field or 'Проект' }}</span>
+          <span class="project-tag">{{ project.ip_asset_type[:15] if project.ip_asset_type else 'Проект' }}</span>
         </div>
       </a>
 
       <div class="project-body">
         <h3>
-          <a
-            href="{{ url_for('project_detail', project_id=project.id) }}"
-            style="color:inherit;text-decoration:none"
-          >{{ project.title }}</a>
+          <a href="{{ url_for('project_detail', project_id=project.id) }}" style="color:#fff; text-decoration:none;">
+            {{ project.title }}
+          </a>
         </h3>
-        <p style="word-break: break-word;">
-          {{ project.description[:155] }}{% if project.description|length > 155 %}…{% endif %}
+        <p style="word-break: break-word; margin-bottom: 16px;">
+          {{ project.description[:120] }}{% if project.description|length > 120 %}…{% endif %}
         </p>
 
-        <div class="project-stats">
-          <span>Команда: <strong>{{ project.team.name or project.team.user.username or 'Команда' }}</strong></span>
+        <div style="font-size: 13px; color: var(--muted); margin-bottom: 12px;">
+          Команда: <strong style="color: #fff;">{{ project.team.name or project.team.user.username or 'Команда' }}</strong>
         </div>
 
         <div class="progress-bar">
@@ -63,79 +77,83 @@
         </div>
 
         <div class="progress-caption">
-          <span>{{ project.sold_shares }} из {{ project.total_shares }} акций</span>
-          <strong>{{ progress }}%</strong>
+          <span>{{ project.sold_shares }} из {{ project.total_shares }} долей</span>
+          <strong style="color: var(--neon-cyan);">{{ progress }}%</strong>
         </div>
 
-        <div class="project-stats" style="margin-top:8px">
-          <span>Цена: <strong>{{ '%.2f'|format(project.share_price) }} ₽ / акция</strong></span>
-          <span>Осталось: <strong>{{ shares_left }}</strong></span>
+        <div class="project-stats" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">
+          <span style="color:var(--muted);">Цена доли:</span>
+          <strong>{{ '%.2f'|format(project.share_price) }} ₽</strong>
         </div>
-
-        <p style="color:var(--muted);font-size:12px;margin-top:6px">
-          Собрано {{ '%.2f'|format(project.raised) }} ₽ из {{ '%.2f'|format(project.goal) }} ₽
-        </p>
+        
+        <div class="project-stats" style="margin-top:4px;">
+          <span style="color:var(--muted);">Осталось:</span>
+          <strong>{{ shares_left }} шт.</strong>
+        </div>
 
         {% if shares_left > 0 %}
-          <form class="donate-form" method="post" action="{{ url_for('buy_shares', project_id=project.id) }}">
+          <!-- ИСПРАВЛЕНО: добавили flex-direction column и gap 12px -->
+          <form method="post" action="{{ url_for('buy_shares', project_id=project.id) }}" style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
             {{ form.hidden_tag() }}
             <input
               class="form-control"
               type="number"
-              name="shares"
+              name="amount"
               min="1"
-              max="{{ shares_left }}"
-              step="1"
+              step="0.01"
               required
-              placeholder="Сколько акций купить"
-              aria-label="Количество акций"
+              placeholder="Сумма инвестиций (₽)"
+              aria-label="Сумма инвестиций"
             >
-            <button class="btn btn-primary" type="submit">Купить</button>
+            <button class="btn btn-primary" type="submit" style="width: 100%;">Купить долю</button>
           </form>
         {% else %}
-          <p style="margin-top:12px">Все акции распроданы.</p>
+          <p style="margin-top:20px; font-weight:bold; color:#ffb1b1;">Все доли распроданы.</p>
         {% endif %}
       </div>
     </article>
   {% else %}
-    <div class="card empty-state" style="grid-column:1/-1">
-      Пока нет доступных проектов. Разработчики смогут опубликовать их после создания.
+    <div class="empty-state" style="grid-column:1/-1;">
+      <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.8;">🔭</div>
+      <h3 style="color:#fff; margin-bottom: 8px;">Пока нет доступных проектов</h3>
+      <p>Разработчики смогут опубликовать их после создания.</p>
     </div>
   {% endfor %}
 </div>
 
-<div class="section-header" style="margin-top:32px">
-  <h2>Мои купленные акции</h2>
+<!-- Мой портфель (купленные доли) -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 60px; margin-bottom: 24px;">
+  <h2 style="margin: 0; font-size: 24px; color: #fff;">Мой портфель долей</h2>
 </div>
 
 {% if donations %}
-  <div class="card">
+  <div class="card" style="padding: 24px;">
     {% for purchase in donations %}
-      <div class="list-item" style="align-items:flex-start; flex-wrap:wrap;">
+      <div class="list-item" style="align-items:flex-start; flex-wrap:wrap; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 16px; margin-bottom: 16px;">
         <div class="list-item-content" style="flex: 1 1 300px;">
-          <strong style="font-size:16px;">
-            <a href="{{ url_for('project_detail', project_id=purchase.project.id) }}" style="color:inherit;text-decoration:none">
+          <strong style="font-size:18px; color: #fff;">
+            <a href="{{ url_for('project_detail', project_id=purchase.project.id) }}" style="color:inherit; text-decoration:none;">
               {{ purchase.project.title }}
             </a>
           </strong>
-          <p style="color:var(--muted); font-size:13px; margin-top:4px;">
-            Куплено: <strong style="color:var(--text);">{{ purchase.shares }} акций</strong>
+          <p style="color:var(--muted); font-size:14px; margin-top:8px;">
+            Куплено: <strong style="color:var(--neon-cyan);">{{ purchase.shares }} долей</strong>
             · {{ '%.2f'|format(purchase.amount) }} ₽
             · {{ purchase.created_at.strftime('%d.%m.%Y') if purchase.created_at else '' }}
           </p>
 
           {% set project_updates = purchase.project.updates[:2] %}
           {% if project_updates %}
-            <div style="margin-top:12px; padding:10px; background:rgba(255,255,255,.05); border-radius:8px; border-left:3px solid #f4bdd4;">
-              <div style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Последние отчёты:</div>
+            <div style="margin-top:16px; padding:16px; background:rgba(255,255,255,.03); border-radius:12px; border-left:3px solid var(--neon-cyan);">
+              <div style="font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Последние отчёты команды:</div>
               {% for upd in project_updates %}
-                <div style="margin-bottom:8px; font-size:13px;">
-                  <strong>{{ upd.title }}</strong>
-                  <span style="color:var(--muted); font-size:11px;">({{ upd.created_at.strftime('%d.%m.%Y') }})</span><br>
-                  <span style="color:var(--muted);">{{ upd.content[:80] }}{% if upd.content|length > 80 %}…{% endif %}</span>
+                <div style="margin-bottom:12px; font-size:14px;">
+                  <strong style="color: #fff;">{{ upd.title }}</strong>
+                  <span style="color:var(--muted); font-size:12px;">({{ upd.created_at.strftime('%d.%m.%Y') }})</span><br>
+                  <span style="color:var(--muted);">{{ upd.content[:100] }}{% if upd.content|length > 100 %}…{% endif %}</span>
                 </div>
               {% endfor %}
-              <a href="{{ url_for('project_detail', project_id=purchase.project.id) }}" style="font-size:12px; color:#f4bdd4; text-decoration:none; display:inline-block; margin-top:4px;">Все отчёты проекта →</a>
+              <a href="{{ url_for('project_detail', project_id=purchase.project.id) }}" style="font-size:13px; color:var(--neon-cyan); text-decoration:none; display:inline-block; margin-top:4px;">Все отчёты проекта →</a>
             </div>
           {% endif %}
         </div>
@@ -143,8 +161,11 @@
     {% endfor %}
   </div>
 {% else %}
-  <div class="card empty-state">
-    Покупок пока нет.
+  <div class="empty-state">
+    <div style="font-size: 40px; margin-bottom: 16px; opacity: 0.5;">💼</div>
+    <h3 style="color:#fff; margin-bottom: 8px;">Портфель пока пуст</h3>
+    <p>Купите доли в проектах, чтобы они появились здесь.</p>
   </div>
 {% endif %}
+
 {% endblock %}

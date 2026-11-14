@@ -75,10 +75,20 @@ class Project(db.Model):
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text, nullable=False)
 
-    # --- Акции ---
+    # --- Доли и оценка ---
     total_shares = db.Column(db.Integer, nullable=False, default=100)
     share_price = db.Column(db.Float, nullable=False, default=1.0)
     sold_shares = db.Column(db.Integer, nullable=False, default=0)
+
+    # --- Модель ИС ---
+    ip_asset_type = db.Column(db.String(150), default='Патент на изобретение')
+    royalty_percentage = db.Column(db.Float, default=20.0)
+    monetization_scenario = db.Column(db.Text, default='Продажа лицензий / Роялти с продаж')
+    milestone = db.Column(db.String(200), default='Доля фиксируется после подачи заявки на патент')
+
+    # --- Скоринг ---
+    score = db.Column(db.Integer, default=5)
+    score_explanation = db.Column(db.Text, default='')
 
     status = db.Column(db.String(20), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -98,13 +108,18 @@ class Project(db.Model):
 
     # --- Удобные свойства ---
     @property
+    def ip_valuation(self):
+        """Оценка интеллектуальной собственности."""
+        return round(self.total_shares * self.share_price, 2)
+
+    @property
     def goal(self):
-        """Цель сбора = все акции × цена."""
+        """Цель сбора = все доли × цена."""
         return round(self.total_shares * self.share_price, 2)
 
     @property
     def raised(self):
-        """Собрано = проданные акции × цена."""
+        """Собрано = проданные доли × цена."""
         return round(self.sold_shares * self.share_price, 2)
 
     @property
@@ -119,7 +134,7 @@ class Project(db.Model):
 
 
 class Sponsorship(db.Model):
-    """Покупка акций проекта спонсором."""
+    """Покупка долей проекта спонсором."""
 
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(
@@ -132,7 +147,7 @@ class Sponsorship(db.Model):
         db.ForeignKey('sponsor.id'),
         nullable=False,
     )
-    shares = db.Column(db.Integer, nullable=False)      # сколько акций куплено
+    shares = db.Column(db.Integer, nullable=False)      # сколько долей куплено
     amount = db.Column(db.Float, nullable=False)        # итоговая сумма
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

@@ -1,22 +1,9 @@
 <div class="wallpaper" aria-hidden="true">
-  <img
-    class="wallpaper-image"
-    src="{{ url_for('static', filename='images/sakura.jpg') }}"
-    alt=""
-  >
-
-  <video
-    id="wallpaper-video"
-    class="wallpaper-video"
-    muted
-    loop
-    playsinline
-    preload="none"
-    poster="{{ url_for('static', filename='images/sakura.jpg') }}"
-    aria-hidden="true"
-  ></video>
-
+  <!-- Научный фон создается через CSS (сетка и свечение) -->
+  <div class="science-grid"></div>
+  <div class="science-glow"></div>
   <div class="wallpaper-shade"></div>
 </div>
 
+<!-- Холст для парящих научных частиц (атомов/данных) -->
 <canvas id="snow-canvas" aria-hidden="true"></canvas>
