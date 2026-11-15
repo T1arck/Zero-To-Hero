@@ -17,24 +17,42 @@
 </div>
 
 <!-- Блок профиля инвестора -->
-<div class="card" style="padding: 30px; margin-bottom: 40px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
+<div class="card" style="padding: 30px; margin-bottom: 24px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
   <div style="width: 80px; height: 80px; flex-shrink: 0; display: grid; place-items: center; font-size: 32px; font-weight: 800; color: #000; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); border-radius: 50%; box-shadow: 0 0 25px rgba(0, 242, 254, 0.4);">
     {{ (sponsor.company or sponsor.user.username or '?')[0]|upper }}
   </div>
-  
+
   <div style="flex: 1; min-width: 250px;">
     <h2 style="margin: 0 0 6px; font-size: 24px; color: #fff;">
       {{ sponsor.company or sponsor.user.username }}
     </h2>
     <p style="margin: 0; color: var(--muted); font-size: 15px;">
-      Инвестор 
-      <span style="color: var(--line); margin: 0 8px;">|</span> 
+      Инвестор
+      <span style="color: var(--line); margin: 0 8px;">|</span>
       <span style="color: var(--neon-cyan);">{{ sponsor.user.email }}</span>
     </p>
   </div>
 
   <div style="flex-shrink: 0; margin-left: auto;">
     <a class="btn btn-secondary" href="{{ url_for('sponsor_profile') }}">Настроить профиль</a>
+  </div>
+</div>
+
+<!-- НОВОЕ: Кошелёк инвестора -->
+<div class="card" style="padding: 24px; margin-bottom: 40px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; background: linear-gradient(135deg, rgba(0,242,254,0.08), rgba(179,136,255,0.08)); border: 1px solid rgba(0,242,254,0.25);">
+  <div style="width: 64px; height: 64px; flex-shrink: 0; display: grid; place-items: center; font-size: 28px; background: rgba(0,242,254,0.15); border-radius: 16px; box-shadow: 0 0 20px rgba(0,242,254,0.2);">
+    💰
+  </div>
+  <div style="flex: 1; min-width: 200px;">
+    <div style="color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+      Баланс кошелька
+    </div>
+    <div style="font-size: 36px; font-weight: 800; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+      {{ '%.2f'|format(sponsor.balance or 0) }} ₽
+    </div>
+  </div>
+  <div style="flex-shrink: 0;">
+    <a class="btn btn-secondary" href="{{ url_for('my_shares') }}">Мои доли</a>
   </div>
 </div>
 
@@ -85,16 +103,19 @@
           <span style="color:var(--muted);">Цена доли:</span>
           <strong>{{ '%.2f'|format(project.share_price) }} ₽</strong>
         </div>
-        
+
         <div class="project-stats" style="margin-top:4px;">
           <span style="color:var(--muted);">Осталось:</span>
           <strong>{{ shares_left }} шт.</strong>
         </div>
 
         {% if shares_left > 0 %}
-          <!-- ИСПРАВЛЕНО: добавили flex-direction column и gap 12px -->
           <form method="post" action="{{ url_for('buy_shares', project_id=project.id) }}" style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
             {{ form.hidden_tag() }}
+            <!-- НОВОЕ: подсказка про баланс -->
+            <div style="font-size: 12px; color: var(--muted);">
+              Доступно: <strong style="color: var(--neon-cyan);">{{ '%.2f'|format(sponsor.balance or 0) }} ₽</strong>
+            </div>
             <input
               class="form-control"
               type="number"

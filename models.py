@@ -39,6 +39,8 @@ class Sponsor(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
     company = db.Column(db.String(120))
     bio = db.Column(db.Text)
+    # НОВОЕ: кошелёк инвестора — 10 000 ₽ при регистрации
+    balance = db.Column(db.Float, nullable=False, default=10000.0)
 
     user = db.relationship('User', backref=db.backref('sponsor', uselist=False))
     purchases = db.relationship(

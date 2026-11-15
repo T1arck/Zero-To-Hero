@@ -16,6 +16,16 @@
 </div>
 
 <div class="two-col" style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 24px;">
+  <!-- НОВОЕ: баланс кошелька -->
+  <div style="flex: 1; min-width: 300px;">
+    <div class="card">
+      <div class="card-title" style="color:var(--muted); font-size:14px; text-transform:uppercase; letter-spacing:1px;">Баланс кошелька</div>
+      <div class="balance-value" style="font-size:36px; font-weight:800; color:#fff; background:linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        {{ "%.2f"|format(sponsor.balance or 0) }} ₽
+      </div>
+    </div>
+  </div>
+
   <div style="flex: 1; min-width: 300px;">
     <div class="card">
       <div class="card-title" style="color:var(--muted); font-size:14px; text-transform:uppercase; letter-spacing:1px;">Всего вложено</div>
@@ -24,29 +34,26 @@
       </div>
     </div>
   </div>
-  
-  <div style="flex: 1; min-width: 300px;">
-    {% if not public|default(false) %}
-    <div class="card" id="editForm" style="display:none;">
-      <div class="card-title">Редактировать профиль</div>
-      <form method="post">
-        <!-- ВАЖНО: Добавлен токен CSRF -->
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        
-        <div class="form-group">
-          <label>Компания</label>
-          <input name="company" class="form-control" value="{{ sponsor.company or '' }}">
-        </div>
-        <div class="form-group">
-          <label>О себе</label>
-          <textarea name="bio" class="form-control" rows="5">{{ sponsor.bio or '' }}</textarea>
-        </div>
-        <button class="btn btn-primary" type="submit" style="width:100%;">Сохранить</button>
-      </form>
-    </div>
-    {% endif %}
-  </div>
 </div>
+
+{% if not public|default(false) %}
+<div class="card" id="editForm" style="display:none; margin-top: 24px;">
+  <div class="card-title">Редактировать профиль</div>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-group">
+      <label>Компания</label>
+      <input name="company" class="form-control" value="{{ sponsor.company or '' }}">
+    </div>
+    <div class="form-group">
+      <label>О себе</label>
+      <textarea name="bio" class="form-control" rows="5">{{ sponsor.bio or '' }}</textarea>
+    </div>
+    <button class="btn btn-primary" type="submit" style="width:100%;">Сохранить</button>
+  </form>
+</div>
+{% endif %}
 
 <div class="card">
   <div class="card-title">Мои покупки долей</div>

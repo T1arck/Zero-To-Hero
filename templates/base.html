@@ -405,7 +405,6 @@
           </a>
         </li>
 
-        {# ---------- НОВОЕ: пункты для инвестора ---------- #}
         {% if current_user.role == 'sponsor' %}
           <li>
             <a href="{{ url_for('market') }}" class="{% if request.endpoint == 'market' %}active{% endif %}">
@@ -430,7 +429,6 @@
             </a>
           </li>
         {% endif %}
-        {# ---------- /НОВОЕ ---------- #}
       {% endif %}
     </ul>
 
@@ -471,6 +469,17 @@
               <div style="padding:10px 12px;margin-bottom:8px;font-weight:700;border-bottom:1px solid var(--line);color:#fff;">
                 {{ current_user.username }}
               </div>
+
+              <!-- НОВОЕ: баланс кошелька в меню -->
+              {% if current_user.role == 'sponsor' and current_user.sponsor %}
+                <div style="padding:8px 12px;margin-bottom:8px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line);">
+                  Баланс:
+                  <strong style="color:var(--neon-cyan);">
+                    {{ '%.2f'|format(current_user.sponsor.balance or 0) }} ₽
+                  </strong>
+                </div>
+              {% endif %}
+
               <a href="{{ url_for('account') }}" style="display:flex;align-items:center;gap:10px;padding:12px;color:#fff;border-radius:8px;transition:0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 Личный кабинет
@@ -480,7 +489,6 @@
                 Мои проекты
               </a>
 
-              {# ---------- НОВОЕ: ссылки для инвестора ---------- #}
               {% if current_user.role == 'sponsor' %}
                 <a href="{{ url_for('market') }}" style="display:flex;align-items:center;gap:10px;padding:12px;color:#fff;border-radius:8px;transition:0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                   <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M3 3v18h18"></path><path d="M7 14l4-4 4 4 5-5"></path></svg>
@@ -491,7 +499,6 @@
                   Мои доли
                 </a>
               {% endif %}
-              {# ---------- /НОВОЕ ---------- #}
 
               <a href="{{ url_for('logout') }}" style="display:flex;align-items:center;gap:10px;padding:12px;color:var(--neon-pink);border-radius:8px;transition:0.2s;" onmouseover="this.style.background='rgba(255,126,179,0.1)'" onmouseout="this.style.background='transparent'">
                 <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>

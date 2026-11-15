@@ -133,7 +133,10 @@ def register():
             db.session.flush()
 
             if user.role == 'sponsor':
-                db.session.add(Sponsor(user_id=user.id, company='', bio=''))
+                # НОВОЕ: стартовый баланс 10 000 ₽
+                db.session.add(Sponsor(
+                    user_id=user.id, company='', bio='', balance=10000.0,
+                ))
             elif user.role == 'team':
                 db.session.add(ResearchTeam(
                     user_id=user.id, name='', description='', field='',
@@ -423,6 +426,18 @@ def buy_shares(project_id):
         user_id=current_user.id
     ).first_or_404()
 
+    # НОВОЕ: проверка баланса кошелька
+    if (sponsor.balance or 0) < actual_amount:
+        flash(
+            f'Недостаточно средств. На кошельке: '
+            f'{sponsor.balance:.2f} ₽, требуется: {actual_amount:.2f} ₽.',
+            'danger',
+        )
+        return redirect(url_for('project_detail', project_id=project.id))
+
+    # НОВОЕ: списываем средства
+    sponsor.balance = round((sponsor.balance or 0) - actual_amount, 2)
+
     project.sold_shares += shares
     if project.sold_shares >= project.total_shares:
         project.sold_shares = project.total_shares
@@ -443,6 +458,7 @@ def buy_shares(project_id):
 
     flash(
         f'Куплено {shares} долей на {actual_amount:.2f} ₽. '
+        f'Остаток на кошельке: {sponsor.balance:.2f} ₽. '
         'Средства зарезервированы в эскроу и будут перечислены команде '
         'по мере закрытия вех.',
         'success',
@@ -713,6 +729,23 @@ def buy_listing(listing_id):
         flash('Нельзя купить собственный лот.', 'warning')
         return redirect(url_for('market'))
 
+    total_price = listing.total_price
+
+    # НОВОЕ: проверка баланса покупателя
+    if (buyer.balance or 0) < total_price:
+        flash(
+            f'Недостаточно средств. На кошельке: '
+            f'{buyer.balance:.2f} ₽, требуется: {total_price:.2f} ₽.',
+            'danger',
+        )
+        return redirect(url_for('market'))
+
+    # НОВОЕ: списываем у покупателя, начисляем продавцу
+    buyer.balance = round((buyer.balance or 0) - total_price, 2)
+    seller = db.session.get(Sponsor, listing.seller_id)
+    if seller:
+        seller.balance = round((seller.balance or 0) + total_price, 2)
+
     listing.status = 'sold'
     listing.buyer_id = buyer.id
     listing.sold_at = datetime.utcnow()
@@ -723,8 +756,8 @@ def buy_listing(listing_id):
     db.session.commit()
 
     flash(
-        f'Куплено {listing.shares} долей за {listing.total_price:.2f} ₽ '
-        f'(вторичный рынок).',
+        f'Куплено {listing.shares} долей за {total_price:.2f} ₽ '
+        f'(вторичный рынок). Остаток на кошельке: {buyer.balance:.2f} ₽.',
         'success',
     )
     return redirect(url_for('my_shares'))
@@ -749,6 +782,17 @@ def _ensure_schema():
                     "ADD COLUMN escrow_released FLOAT NOT NULL DEFAULT 0.0"
                 ))
             print('[migrate] project.escrow_released — добавлена')
+
+    # НОВОЕ: кошелёк спонсора
+    if 'sponsor' in pre_tables:
+        cols = {c['name'] for c in inspector.get_columns('sponsor')}
+        if 'balance' not in cols:
+            with db.engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE sponsor "
+                    "ADD COLUMN balance FLOAT NOT NULL DEFAULT 10000.0"
+                ))
+            print('[migrate] sponsor.balance — добавлена (10 000 ₽ каждому)')
 
     # 2) Создаём недостающие таблицы (milestone, share_holding, share_listing)
     db.create_all()
