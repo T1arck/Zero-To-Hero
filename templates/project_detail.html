@@ -20,7 +20,9 @@
     </div>
     <div style="flex: 1; min-width: 200px;">
       <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Доля роялти</div>
-      <div style="font-weight: 600; color: var(--neon-cyan); margin-top: 4px; font-size: 16px;">{{ project.royalty_percentage }}%</div>
+      <div style="font-weight: 600; color: var(--neon-cyan); margin-top: 4px; font-size: 16px;">
+        {{ '%.1f'|format(project.royalty_percentage or 0) }}%
+      </div>
     </div>
     <div style="flex: 1; min-width: 200px;">
       <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Сценарий монетизации</div>
@@ -101,7 +103,7 @@
         {{ form.hidden_tag() }}
         <input class="form-control" type="number" name="amount" id="invest-amount"
                min="1" step="0.01" required placeholder="Сумма инвестиций (₽)"
-               oninput="calculateShare()">
+               inputmode="decimal" oninput="calculateShare()">
         <button class="btn btn-primary" type="submit" style="white-space: nowrap;">Купить долю в ИС</button>
       </form>
       <div id="calculation-result" style="margin-top: 16px; color: #fff; font-size: 15px; line-height: 1.6; padding: 12px; background: rgba(255,255,255,.05); border-radius: 8px; display: none;"></div>
@@ -109,20 +111,36 @@
         <strong>🔐 Эскроу:</strong> средства удерживаются платформой и выплачиваются команде траншами после подтверждения вех.
       </div>
     </div>
+
     <script>
-    function calculateShare() {
-      const amount = parseFloat(document.getElementById('invest-amount').value);
-      const sharePrice = {{ project.share_price }};
-      const totalShares = {{ project.total_shares }};
-      const ipValuation = totalShares * sharePrice;
-      const resultDiv = document.getElementById('calculation-result');
-      if (!amount || amount <= 0) { resultDiv.style.display = 'none'; return; }
-      const shares = Math.floor(amount / sharePrice);
-      const actualCost = shares * sharePrice;
-      const percent = (actualCost / ipValuation) * 100;
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `Вы получаете <strong style="color:#f4bdd4;">${percent.toFixed(2)}%</strong> доли (${shares} долей)<br>Итог: <strong>${actualCost.toLocaleString('ru-RU')} ₽</strong>`;
-    }
+      // Данные проекта вынесены в отдельный объект — редактор не ругается на {{ }}
+      window.PROJECT_DATA = {
+        sharePrice: {{ (project.share_price or 0)|tojson }},
+        totalShares: {{ (project.total_shares or 0)|tojson }}
+      };
+
+      function calculateShare() {
+        const amountInput = document.getElementById('invest-amount');
+        const resultDiv = document.getElementById('calculation-result');
+        const amount = parseFloat(amountInput.value);
+        const { sharePrice, totalShares } = window.PROJECT_DATA;
+        const ipValuation = totalShares * sharePrice;
+
+        if (!amount || amount <= 0 || !sharePrice) {
+          resultDiv.style.display = 'none';
+          return;
+        }
+
+        const shares = Math.floor(amount / sharePrice);
+        const actualCost = shares * sharePrice;
+        const percent = ipValuation > 0 ? (actualCost / ipValuation) * 100 : 0;
+
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML =
+          'Вы получаете <strong style="color:#f4bdd4;">' + percent.toFixed(2) + '%</strong> доли (' +
+          shares + ' долей)<br>Итог: <strong>' +
+          actualCost.toLocaleString('ru-RU') + ' ₽</strong>';
+      }
     </script>
   {% elif project.shares_left <= 0 %}
     <p style="margin-top:18px; font-weight: bold; color: #ffb1b1;">Все доли проекта распроданы.</p>
