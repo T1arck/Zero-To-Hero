@@ -31,7 +31,7 @@
   </div>
 
   <p style="color:var(--muted);line-height:1.7;white-space:pre-line;word-break:break-word;">
-    {{ project.description }}
+    {{ project.description or '' }}
   </p>
 
   <p style="margin-top:18px">
@@ -113,7 +113,7 @@
     </div>
 
     <script>
-      // Данные проекта вынесены в отдельный объект — редактор не ругается на {{ }}
+      // Данные проекта вынесены в отдельный объект
       window.PROJECT_DATA = {
         sharePrice: {{ (project.share_price or 0)|tojson }},
         totalShares: {{ (project.total_shares or 0)|tojson }}
